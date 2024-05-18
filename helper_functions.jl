@@ -12,33 +12,32 @@ struct Sled end
 
 ##
 function WM_param_qMT()
-    m0s = 0.2
-    R1f = 1 / 1.92   # 1/s
-    R1s = 1 / 0.337  # 1/s
-    Rx = 16.5       # 1/s
-    R2f = 1 / 0.0776 # 1/s
-    T2s = 12.4e-6    # s
+    m0s = 0.25
+    R1f = 1 / 1.84   # 1/s
+    R1s = 1 / 0.34   # 1/s
+    Rx = 13.6           # 1/s
+    R2f = 1 / 0.0769 # 1/s
+    T2s = 12.5e-6    # s
     return m0s, R1f, R2f, Rx, R1s, T2s
 end
 
 function WM_param_Stanisz()
     m0s = 0.139
     R1f = 1 / 1.084  # 1/s
-    R2f = 1 / 0.069  # 1/s
-    Rx = 23         # 1/s
+    R2f = 1 / 0.0769 # 1/s
+    Rx = 23          # 1/s
     R1s = 1          # 1/s
-    T2s = 10e-6    # s
+    T2s = 12.5e-6    # s
     return m0s, R1f, R2f, Rx, R1s, T2s
 end
 
-
 function WM_param_monoExp()
     m0s = 0
-    R1f = 1 / 1.084    # 1/s
-    R2f = 0          # 1/s
-    Rx = 0          # 1/s
+    R1f = 1 / 1.084  # 1/s
+    R2f = 1 / 0.0769 # 1/s
+    Rx = 0           # 1/s
     R1s = R1f        # 1/s
-    T2s = 12.4e-6    # s
+    T2s = 12.5e-6    # s
     return m0s, R1f, R2f, Rx, R1s, T2s
 end
 
@@ -68,7 +67,7 @@ function RF_pulse_propagator(ω1::Number, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, 
         R2s = R2sl_short(TRF, abs(ω1 * TRF), B1, T2s)
         U = exp(hamiltonian_linear(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, R2s))
         U = spoiler ? U * u_sp : U
-    elseif TRF <= 5e-3
+    elseif TRF >= 100e-6 && TRF <= 5e-3
         R2s = R2sl(TRF, abs(ω1 * TRF), B1, T2s)
         U = exp(hamiltonian_linear(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, R2s))
         U = spoiler ? U * u_sp : U
@@ -79,13 +78,12 @@ function RF_pulse_propagator(ω1::Number, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, 
 end
 
 function RF_pulse_propagator(ω1::Function, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::gBloch; spoiler=true)
-    m0 = zeros(5)
     U = zeros(6, 6)
     Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
 
-    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only z magnetization is non-zero
-    for i ∈ i_in
-        m0 .= 0
+    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only the z magnetization is non-zero
+    Threads.@threads for i ∈ i_in
+        m0 = zeros(5)
         m0[i] = 1
         mfun(p, t; idxs=nothing) = typeof(idxs) <: Number ? m0[idxs] : m0
         Ui[1:5, i] = solve(DDEProblem(apply_hamiltonian_gbloch!, m0, mfun, (0, TRF), (ω1, B1, ω0, m0s, R1f, R2f, Rx, R1s, T2s, G)), reltol=1e-6, MethodOfSteps(RK4()))[end]
@@ -98,7 +96,7 @@ function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, mod
     U = zeros(6, 6)
     Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
 
-    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only z magnetization is non-zero
+    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only the z magnetization is non-zero
     for i ∈ i_in
         m0 .= 0
         m0[i] = 1
@@ -113,7 +111,7 @@ function RF_pulse_propagator(ω1::Real, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2
     U = zeros(6, 6)
     Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
 
-    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only z magnetization is non-zero
+    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only the z magnetization is non-zero
     for i ∈ i_in
         m0 .= 0
         m0[i] = 1
@@ -130,7 +128,7 @@ function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, mod
     U = zeros(6, 6)
     Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
 
-    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only z magnetization is non-zero
+    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only the z magnetization is non-zero
     for i ∈ i_in
         m0 .= 0
         m0[i] = 1
@@ -152,6 +150,8 @@ struct Rrf_Atom
 end
 Rrf_Dict = Rrf_Atom[]
 function graham_saturation_rate_spectral_fast(ω1, B1, ω0, TRF, T2s)
+    T2s == 0 && return 1 # for mono-exponential model
+
     d_ω0 = typeof(ω0) <: Function ? ω0(sqrt(TRF)) : ω0 # just used for comparison
 
     for x ∈ Rrf_Dict
@@ -171,17 +171,6 @@ function sinc_pulse(α, TRF; nLobes=3)
     x = (nLobes - 1) / 2 + 1
     ω1(t) = sinc((2t / TRF - 1) * x) * α * x * π / (sinint(x * π) * TRF)
 end
-
-# function hanning_pulse(α, TRF; ω0=0)
-#     if TRF * ω0 > 0 && TRF * ω0 / 2π % 1 == 0
-#         @error "TRF*ω0/2π cannot be an integer"
-#     end
-#     ω1(t) = α * cos(ω0 * (t - TRF / 2)) * cos(π * t / TRF - π / 2)^2 * (2 / TRF - TRF * ω0^2 / (2π^2)) / sinc(TRF * ω0 / 2π)
-# end
-
-# function hanning_ω1ms(α, TRF, TR; ω0=0)
-#     (3α^2 * (4π^2 - TRF^2 * ω0^2) * (4π^4 * TRF - 5π^2 * TRF^3 * ω0^2 + TRF^5 * ω0^4 + 4π^4 * TRF * sinc(TRF * ω0 / π))) / (64π^4 * sinc(TRF * ω0 / 2π)^2 * TRF^2 * (π^2 - TRF^2 * ω0^2)) / TR
-# end
 
 function hanning_pulse(α, TRF)
     ω1(t) = α * cos(π * t / TRF - π / 2)^2 * 2 / TRF
@@ -212,25 +201,25 @@ end
 
 ##
 # TRF = 10.24e-3 # s
-# γ = 267.522e6 # gyromagnetic ratio in rad/s/T
-# ω₁ᵐᵃˣ = 13e-6 * γ # rad/s
-# μ = 5 # shape parameter in rad
 # β = 674.1 # shape parameter in 1/s
-function sech_inversion_pulse(; TRF=10.24e-3, ω₁ᵐᵃˣ=13e-6 * 267.522e6, μ=5, β=674.1)
+# μ = 5 # shape parameter in rad
+# ω₁ᵐᵃˣ = 4965.910769033364 # rad/s – scaled such that the integral over the real part of the pulse (real(ω1 * exp(1im * φ))) equates to 2π
+function sech_inversion_pulse(; TRF=10.24e-3, ω₁ᵐᵃˣ=4965.910769033364, μ=5, β=674.1)
     ω1(t) = ω₁ᵐᵃˣ * sech(β * (t - TRF / 2)) # rad/s
     ω0(t) = -μ * β * tanh(β * (t - TRF/2)) # rad/s
-    φ(t) = -μ * log(cosh(β * t) - sinh(β * t) * tanh(β * TRF / 2)) # rad
+    φ_u(t) = μ * log(cosh(β * t) - sinh(β * t) * tanh(β * TRF / 2)) # rad
+    φ(t) = φ_u(t) - φ_u(TRF/2)
     return (ω1, ω0, φ, TRF)
 end
 
-# Shape according to doi:10.1006/jmre.2001.2340
-function sechn_inversion_pulse(; TRF=10e-3, ω₁ᵐᵃˣ=13e-6 * 267.522e6 / 2, μ=14, β=250, n = 8)
+# Shape according to doi:10.1006/jmre.2001.2340 and provided by Dr. O'Brien
+function sechn_inversion_pulse(; TRF=10.24e-3, ω₁ᵐᵃˣ=10e-6 * 267.522e6, β=240, μ=35, n = 8)
     f1(τ) = sech((β * τ)^n)
     ω1(t) = ω₁ᵐᵃˣ * f1(t - TRF / 2) # rad/s
 
-    ω0_i(t) = -μ * β^2 * quadgk((τ) -> f1(τ)^2, 0, t - TRF/2)[1]
+    ω0_i(t) = μ * β^2 * quadgk((τ) -> f1(τ)^2, 0, t - TRF/2)[1]
     ω0 = Fun(ω0_i, 0..TRF)
-    # φ_i(t) = quadgk(ω0, -TRF/2, t)[1] - quadgk(ω0, -TRF/2, 0)[1]
-    φ = cumsum(ω0)
+    φ_ = cumsum(ω0)
+    φ(t) = φ_(t) - φ_(TRF/2)
     return (ω1, ω0, φ, TRF)
 end

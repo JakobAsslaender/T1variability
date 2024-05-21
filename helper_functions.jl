@@ -11,38 +11,6 @@ struct Graham end
 struct Sled end
 
 ##
-function WM_param_qMT()
-    m0s = 0.25
-    R1f = 1 / 1.84   # 1/s
-    R1s = 1 / 0.34   # 1/s
-    Rx = 13.6           # 1/s
-    R2f = 1 / 0.0769 # 1/s
-    T2s = 12.5e-6    # s
-    return m0s, R1f, R2f, Rx, R1s, T2s
-end
-
-function WM_param_Stanisz()
-    m0s = 0.139
-    R1f = 1 / 1.084  # 1/s
-    R2f = 1 / 0.0769 # 1/s
-    Rx = 23          # 1/s
-    R1s = 1          # 1/s
-    T2s = 12.5e-6    # s
-    return m0s, R1f, R2f, Rx, R1s, T2s
-end
-
-function WM_param_monoExp()
-    m0s = 0
-    R1f = 1 / 1.084  # 1/s
-    R2f = 1 / 0.0769 # 1/s
-    Rx = 0           # 1/s
-    R1s = R1f        # 1/s
-    T2s = 12.5e-6    # s
-    return m0s, R1f, R2f, Rx, R1s, T2s
-end
-
-
-##
 u_sp = @SMatrix [
     0 0 0 0 0 0
     0 0 0 0 0 0
@@ -200,10 +168,11 @@ end
 
 
 ##
-# TRF = 10.24e-3 # s
-# β = 674.1 # shape parameter in 1/s
-# μ = 5 # shape parameter in rad
-# ω₁ᵐᵃˣ = 4965.910769033364 # rad/s – scaled such that the integral over the real part of the pulse (real(ω1 * exp(1im * φ))) equates to 2π
+# Standard Siemen parameters:
+# TRF = 10.24e-3 s
+# β = 674.1 shape parameter in 1/s
+# μ = 5 shape parameter in rad
+# ω₁ᵐᵃˣ = 4965.910769033364 rad/s – scaled such that the integral over the real part of the pulse (real(ω1 * exp(1im * φ))) equates to 2π
 function sech_inversion_pulse(; TRF=10.24e-3, ω₁ᵐᵃˣ=4965.910769033364, μ=5, β=674.1)
     ω1(t) = ω₁ᵐᵃˣ * sech(β * (t - TRF / 2)) # rad/s
     ω0(t) = -μ * β * tanh(β * (t - TRF/2)) # rad/s

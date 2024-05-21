@@ -1008,7 +1008,7 @@ function model(iseq, p)
     return T1
 end
 
-# perform fit
+println("")
 @info "perform fit with a mono-exponential model"
 fit_mono = curve_fit(model, 1:length(T1_literature), T1_literature, [R1f], x_tol=1e-3, show_trace=true)
 push!(fitted_param, (m0s, fit_mono.param[1], R2f, Rx, R1s, T2s))
@@ -1062,7 +1062,7 @@ function model(iseq, p)
     return T1
 end
 
-# perform fit
+println("")
 @info "perform fit with Graham's MT model and without T1s constraint"
 fit_Graham = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f, R1s], x_tol=1e-3, show_trace=true)
 push!(fitted_param, (fit_Graham.param[1], fit_Graham.param[2], R2f, Rx, fit_Graham.param[3], T2s))
@@ -1114,7 +1114,7 @@ function model(iseq, p)
     return T1
 end
 
-# perform fit
+println("")
 @info "perform fit with the generalized Bloch MT model and the T1s = T1f constraint"
 fit_constr = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f], x_tol=1e-3, show_trace=true)
 push!(fitted_param, (fit_constr.param[1], fit_constr.param[2], R2f, Rx, fit_constr.param[2], T2s))
@@ -1166,7 +1166,7 @@ function model(iseq, p)
     return T1
 end
 
-# perform fit
+println("")
 @info "perform fit with the generalized Bloch MT model and without T1s constraint"
 fit_uncon = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f, R1s], x_tol=1e-3, show_trace=true)
 push!(fitted_param, (fit_uncon.param[1], fit_uncon.param[2], R2f, Rx, fit_uncon.param[2], T2s))

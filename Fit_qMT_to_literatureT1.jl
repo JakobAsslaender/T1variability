@@ -1,6 +1,3 @@
-# TODO: readme with pointer to github and instructions
-# TODO: clean up last two sections
-
 using Pkg
 Pkg.activate(Base.source_path() * "/..")
 Pkg.instantiate()
@@ -1169,7 +1166,7 @@ end
 println("")
 @info "perform fit with the generalized Bloch MT model and without T1s constraint"
 fit_uncon = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f, R1s], x_tol=1e-3, show_trace=true)
-push!(fitted_param, (fit_uncon.param[1], fit_uncon.param[2], R2f, Rx, fit_uncon.param[2], T2s))
+push!(fitted_param, (fit_uncon.param[1], fit_uncon.param[2], R2f, Rx, fit_uncon.param[3], T2s))
 push!(T1_simulated, model(1:length(T1_literature), fit_uncon.param))
 scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
 
@@ -1201,6 +1198,8 @@ display(p)
 # data analysis
 ############################################################
 using StatsBase
+
+println("")
 @info "span of T1_literature: " extrema(T1_literature)
 @info "coefficient of variation of T1_literature: " variation(T1_literature)
 
@@ -1229,58 +1228,61 @@ println("")
 ## #########################################################
 # export data
 ############################################################
-# using Printf
+using Printf
 
-# io = open(expanduser("~/Documents/Paper/2023_T1variablity/Figures/T1.txt"), "w")
-# write(io, "meas ")
-# [write(io, "sim_$name_i ") for name_i in fit_name]
-# write(io, "seq_marker ")
-# write(io, "\n")
+## T1 estimates
+io = open(expanduser("~/Documents/Paper/2023_T1variablity/Figures/T1.txt"), "w")
+write(io, "meas ")
+[write(io, "sim_$name_i ") for name_i in fit_name]
+write(io, "seq_marker ")
+write(io, "\n")
 
-# for i_seq in eachindex(T1_literature)
-#     write(io, @sprintf("%1.3f ", T1_literature[i_seq]))
-#     [write(io, @sprintf("%1.3f ", T1_simulated[i_fit][i_seq])) for i_fit in eachindex(T1_simulated)]
-#     # write(io, @sprintf("%u ", marker_num[i_seq]))
-#     write(io, @sprintf("%s ", string(seq_type[i_seq])[1]))
-#     write(io, "\n")
-# end
-# close(io)
+for i_seq in eachindex(T1_literature)
+    write(io, @sprintf("%1.3f ", T1_literature[i_seq]))
+    [write(io, @sprintf("%1.3f ", T1_simulated[i_fit][i_seq])) for i_fit in eachindex(T1_simulated)]
+    write(io, @sprintf("%s ", string(seq_type[i_seq])[1]))
+    write(io, "\n")
+end
+close(io)
 
-# ##
-# io = open(expanduser("~/Documents/Paper/2023_T1variablity/Figures/residuals.txt"), "w")
-# for i_seq in eachindex(fit_mono.resid)
-#     write(io, "1 ")
-#     write(io, @sprintf("%1.3f ", fit_mono.resid[i_seq]))
-#     write(io, @sprintf("%1.3f ", fit_constr.resid[i_seq]))
-#     write(io, @sprintf("%1.3f ", fit_uncon.resid[i_seq]))
-#     # write(io, @sprintf("%1.3f ", fit_Sled.resid[i_seq]))
-#     write(io, @sprintf("%1.3f ", fit_Graham.resid[i_seq]))
-#     write(io, "\n")
-# end
-# close(io)
+## residuals (no longer used)
+io = open(expanduser("~/Documents/Paper/2023_T1variablity/Figures/residuals.txt"), "w")
+for i_seq in eachindex(fit_mono.resid)
+    write(io, "1 ")
+    write(io, @sprintf("%1.3f ", fit_mono.resid[i_seq]))
+    write(io, @sprintf("%1.3f ", fit_constr.resid[i_seq]))
+    write(io, @sprintf("%1.3f ", fit_uncon.resid[i_seq]))
+    write(io, @sprintf("%1.3f ", fit_Graham.resid[i_seq]))
+    write(io, "\n")
+end
+close(io)
 
-# ## AIC/BIC table
-# println("")
-# print("model & constraint & \$\\Delta\$AIC & \$\\Delta\$BIC \\\\\n \\midrule \n")
-# print("mono-exponential   & none            & 0           & 0           \\\\\n")
-# i = findfirst(fit_name .== "unconstr_Graham")
-# print(@sprintf("Graham's & none & %1.1f & %1.1f \\\\\n", ΔAIC[i], ΔBIC[i]))
-# i = findfirst(fit_name .== "constr_gBloch")
-# print(@sprintf("generalized Bloch & \$T_1^s = T_1^f\$ & %1.1f & %1.1f \\\\\n", ΔAIC[i], ΔBIC[i]))
-# i = findfirst(fit_name .== "unconstr_gBloch")
-# print(@sprintf("generalized Bloch & none & %1.1f & %1.1f \\\\\n", ΔAIC[i], ΔBIC[i]))
-# print("\\bottomrule")
+## AIC/BIC table
+println("")
+println("model & \$T_1^s\$ constraint & \$\\Delta\$AIC & \$\\Delta\$BIC \\\\")
+println("\\midrule")
+println("mono-exponential   & none            & 0           & 0           \\\\")
+i = findfirst(fit_name .== "unconstr_Graham")
+println(@sprintf("Graham's & none & %1.1f & %1.1f \\\\", ΔAIC[i], ΔBIC[i]))
+i = findfirst(fit_name .== "constr_gBloch")
+println(@sprintf("generalized Bloch & \$T_1^s = T_1^f\$ & %1.1f & %1.1f \\\\", ΔAIC[i], ΔBIC[i]))
+i = findfirst(fit_name .== "unconstr_gBloch")
+println(@sprintf("generalized Bloch & none & %1.1f & %1.1f \\\\", ΔAIC[i], ΔBIC[i]))
+println("\\bottomrule")
 
 
-# ## fit parameter
-# println("")
-# print("model & Graham's & gen. Bloch & gen. Bloch \\\\\n \\midrule \n")
-# print("constraint & none & \$R_1^s = R_1^f\$ & none \\\\\n \\midrule \n")
-# print(@sprintf("\$m_0^s\$ & %1.2f & %1.2f & %1.2f \\\\\n", fit_Graham.param[1], fit_constr.param[1], fit_uncon.param[1]))
-# print(@sprintf("\$T_1^f\$ (s) & %1.2f & %1.2f & %1.2f \\\\\n", 1 / fit_Graham.param[2], 1 / fit_constr.param[2], 1 / fit_uncon.param[2]))
-# print(@sprintf("\$T_1^s\$ (s) & %1.2f & \\g\$T_1^f\$ & %1.2f \\\\\n", 1 / fit_Graham.param[3], 1 / fit_uncon.param[3]))
-# print(@sprintf("\$T_2^f\$ (ms) & \\g%1.1f & \\g%1.1f & \\g%1.1f \\\\\n", 1e3 / WM_param_qMT()[3], 1e3 / WM_param_Stanisz()[3], 1e3 / WM_param_qMT()[3]))
-# print(@sprintf("\$T_2^s\$ (\$upmy\$s) & \\g%1.1f & \\g%1.1f & \\g%1.1f \\\\\n", 1e6 * WM_param_qMT()[6], 1e6 * WM_param_Stanisz()[6], 1e6 * WM_param_qMT()[6]))
-# # print(@sprintf("\$R_\\text{x}\$ (s\$^{-1}\$) & %1.1f & %1.1f & %1.1f \\\\\n", fit_Graham.param[3], fit_constr.param[3], fit_uncon.param[3]))
-# print(@sprintf("\$R_\\text{x}\$ (s\$^{-1}\$) & \\g%1.1f & \\g%1.1f & \\g%1.1f \\\\\n", WM_param_qMT()[4], WM_param_Stanisz()[4], WM_param_qMT()[4]))
-# print("\\bottomrule")
+## fitted MT parameter
+println("")
+println("MT model                & \\multicolumn{2}{c|}{Graham's} & \\multicolumn{4}{c}{generalized Bloch} \\\\")
+println("\\midrule")
+println("\$T_1^s\$ constraint     & \\multicolumn{2}{c|}{none}     & \\multicolumn{2}{c|}{\$T_1^s = T_1^f\$}  & \\multicolumn{2}{c}{none} \\\\")
+println("\\midrule")
+println("study                   & this                          & \\cite{Gelderen2016,Stanisz.2005}      & this                     & \\cite{Assländer.2024,Stanisz.2005} & this   & \\cite{Assländer.2024oxt} \\\\")
+println("\\midrule")
+println(@sprintf("\$m_0^s\$ & %1.2f & 0.27 & %1.2f & 0.14 & %1.2f & 0.21 \\\\", fitted_param[2][1], fitted_param[3][1], fitted_param[4][1]))
+println(@sprintf("\$T_1^f\$ (s) & %1.2f & 2.44 & %1.2f & 1.52 & %1.2f & 1.84 \\\\", 1/fitted_param[2][2], 1/fitted_param[3][2], 1/fitted_param[4][2]))
+println(@sprintf("\$T_1^s\$ (s) & %1.2f & 0.25 & \\g\$T_1^f\$ & & %1.2f & 0.34 \\\\", 1/fitted_param[2][5], 1/fitted_param[4][5]))
+println(@sprintf("\$T_2^f\$ (ms) & \\g%1.1f & 69 & \\g%1.1f & 70.1 & \\g%1.1f & 76.9 \\\\", 1e3/fitted_param[2][3], 1e3/fitted_param[3][3], 1e3/fitted_param[4][3]))
+println(@sprintf("\$T_2^s\$ (\$\\upmu\$s) & \\g%1.1f & 10.0 & \\g%1.1f & & \\g%1.1f & 12.5 \\\\", 1e6*fitted_param[2][6], 1e6*fitted_param[3][6], 1e6*fitted_param[4][6]))
+println(@sprintf("\$R_\\text{x}\$ (s\$^{-1}\$) & \\g%1.1f & 9.0 & \\g%1.1f & 23.0 & \\g%1.1f & 13.6 \\\\", fitted_param[2][4], fitted_param[3][4], fitted_param[4][4]))
+println("\\bottomrule")

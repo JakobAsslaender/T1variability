@@ -51,11 +51,11 @@ makedocs(;
     draft = true,
     doctest = false,
     authors="Jakob Asslaender <jakob.asslaender@nyumc.org> and contributors",
-    repo="https://github.com/JakobAsslaender/T1Variability/blob/{commit}{path}#{line}",
-    sitename="T1Variability",
+    repo="https://github.com/JakobAsslaender/T1variability/blob/{commit}{path}#{line}",
+    sitename="T1variability",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://JakobAsslaender.github.io/T1Variability",
+        canonical="https://JakobAsslaender.github.io/T1variability",
         assets=String[],
     ),
     pages=[
@@ -69,6 +69,6 @@ makedocs(;
 run(`sed -i'.old' 's/var darkPreference = false/var darkPreference = true/g' docs/build/assets/themeswap.js`)
 
 deploydocs(;
-    repo="github.com/JakobAsslaender/T1Variability",
+    repo="github.com/JakobAsslaender/T1variability",
     push_preview = true,
 )

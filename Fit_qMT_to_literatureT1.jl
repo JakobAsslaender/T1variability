@@ -1,5 +1,5 @@
 # # T₁ Mapping methods
-# First, we load the required packages and include some helper functions, which can be found at TODO
+# First, we load the required packages and include some [Helper functions](@ref)
 include("helper_functions.jl")
 nothing #hide #md
 
@@ -1049,7 +1049,6 @@ nothing #hide #md
 #src #########################################################
 # ## Mono-exponential fit
 #src #########################################################
-
 # We simulate the mono-exponential model as an MT model with a vanishing semi-solid spin pool. In this case, the underlying MT model is irrelevant and we choose Graham's model for speed purposes:
 MT_model = Graham()
 push!(fit_name, "mono_exp")
@@ -1341,35 +1340,35 @@ variation(T1_literature)
 # ### Median absolute deviation
 # In the paper, the median absolute deviation wrt. the mean value is used, as it is more robust to outliers compared to the mean absolute deviation or the standard deviation. Note, however, that the median absolute deviation of the mono-exponential fit is dominated by an outlier, artificially inflating the corresponding reduction.
 
-# A mono-exponential model explains the following fraction of the T₁ variablity in the literature:
+# A mono-exponential model explains the following fraction of the T₁ variability in the literature:
 1 - mad(fit_mono.resid;   center=mean(fit_mono.resid))    / mad(T1_literature; center=mean(T1_literature))
-# Graham's spectral model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+# Graham's spectral model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variability in the literature:
 1 - mad(fit_Graham.resid; center=mean(fit_Graham.resid))  / mad(T1_literature; center=mean(T1_literature))
-# The generalized Bloch model constrained by `R₁ˢ = R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+# The generalized Bloch model constrained by `R₁ˢ = R₁ᶠ` explains the following fraction of the T₁ variability in the literature:
 1 - mad(fit_constr.resid; center=mean(fit_constr.resid))  / mad(T1_literature; center=mean(T1_literature))
-# The generalized Bloch model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+# The generalized Bloch model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variability in the literature:
 1 - mad(fit_uncon.resid;  center=mean(fit_uncon.resid))   / mad(T1_literature; center=mean(T1_literature))
 
 # ### Mean absolute deviation
 # For comparison, the mean absolute deviation is analyzed:
-# A mono-exponential model explains the following fraction of the T₁ variablity in the literature:
+# A mono-exponential model explains the following fraction of the T₁ variability in the literature:
 1 - mean(abs.(fit_mono.resid   .- mean(fit_mono.resid)))   / mean(abs.(T1_literature .- mean(T1_literature)))
-# Graham's spectral model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+# Graham's spectral model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variability in the literature:
 1 - mean(abs.(fit_Graham.resid .- mean(fit_Graham.resid))) / mean(abs.(T1_literature .- mean(T1_literature)))
-# The generalized Bloch model constrained by `R₁ˢ = R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+# The generalized Bloch model constrained by `R₁ˢ = R₁ᶠ` explains the following fraction of the T₁ variability in the literature:
 1 - mean(abs.(fit_constr.resid .- mean(fit_constr.resid))) / mean(abs.(T1_literature .- mean(T1_literature)))
-# The generalized Bloch model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+# The generalized Bloch model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variability in the literature:
 1 - mean(abs.(fit_uncon.resid  .- mean(fit_uncon.resid)))  / mean(abs.(T1_literature .- mean(T1_literature)))
 
 # ### Standard deviation
 # For comparison, the standard deviation is analyzed:
-# A mono-exponential model explains the following fraction of the T₁ variablity in the literature:
+# A mono-exponential model explains the following fraction of the T₁ variability in the literature:
 1 - std(fit_mono.resid)   / std(T1_literature)
-# Graham's spectral model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+# Graham's spectral model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variability in the literature:
 1 - std(fit_Graham.resid) / std(T1_literature)
-# The generalized Bloch model constrained by `R₁ˢ = R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+# The generalized Bloch model constrained by `R₁ˢ = R₁ᶠ` explains the following fraction of the T₁ variability in the literature:
 1 - std(fit_constr.resid) / std(T1_literature)
-# The generalized Bloch model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+# The generalized Bloch model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variability in the literature:
 1 - std(fit_uncon.resid)  / std(T1_literature)
 
 

@@ -1,16 +1,30 @@
+# # Helper functions
+# ## Load packages
+using MRIgeneralizedBloch
+using StaticArrays
+using Statistics
+using QuadGK
 using DifferentialEquations
 using SpecialFunctions
 using LinearAlgebra
 using DataFrames
 using GLM
+using StatsBase
 using LsqFit
 using ApproxFun
+using Plots
+plotlyjs(bg=RGBA(31 / 255, 36 / 255, 36 / 255, 1.0), ticks=:native, size=(600, 600))
+nothing #hide #md
 
+# ## Define MT models
+# These structs are used to identify the MT model with Julia's multiple dispatch mechanism
 struct gBloch end
 struct Graham end
 struct Sled end
+nothing #hide #md
 
-##
+# ## Spoiler propagator
+# This matrix implements "perfect" RF spoiling that destroys all transversal magnetization.
 u_sp = @SMatrix [
     0 0 0 0 0 0
     0 0 0 0 0 0
@@ -18,18 +32,34 @@ u_sp = @SMatrix [
     0 0 0 0 0 0
     0 0 0 0 1 0
     0 0 0 0 0 1]
+nothing #hide #md
 
+
+# ## Steady state
+# The input `U` of this function is a propagator that describes the spin evolution during an RF pulse sequence. It uses linear algebra to calculate the steady state magnetization `m` resulting from repeated execution of the pulse sequence described by `U`.
 function steady_state(U)
-    Q = U - MRIgeneralizedBloch.A0(nothing)
-    m = Q \ MRIgeneralizedBloch.C(nothing)
+    U0 = @SMatrix [
+        1 0 0 0 0 0;
+        0 1 0 0 0 0;
+        0 0 1 0 0 0;
+        0 0 0 1 0 0;
+        0 0 0 0 1 0;
+        0 0 0 0 0 0]
+    Q = U - U0
+    m = Q \ @SVector [0,0,0,0,0,1]
     return m
 end
+nothing #hide #md
 
-##
+# ## Pre-calculate the linearization of the generalized Bloch model
+# Refer to the [documentation of the generalized Bloch package](https://jakobasslaender.github.io/MRIgeneralizedBloch.jl/stable/build_literate/Linear_Approximation/) for details.
 const G = interpolate_greens_function(greens_superlorentzian, 0, 1000)
 R2sl = precompute_R2sl(TRF_max=5e-3, ω1_max=π / 500e-6)[1]
 R2sl_short = precompute_R2sl(TRF_min=10e-6, TRF_max=20e-6, ω1_max=π / 10e-6)[1]
+noth
+nothing #hide #md
 
+# ## RF pulse propagators
 function RF_pulse_propagator(ω1::Number, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::gBloch; spoiler=true)
     if TRF >= 10e-6 && TRF <= 20e-6
         R2s = R2sl_short(TRF, abs(ω1 * TRF), B1, T2s)
@@ -44,7 +74,9 @@ function RF_pulse_propagator(ω1::Number, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, 
     end
     return U
 end
+nothing #hide #md
 
+#-
 function RF_pulse_propagator(ω1::Function, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::gBloch; spoiler=true)
     U = zeros(6, 6)
     Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
@@ -58,7 +90,9 @@ function RF_pulse_propagator(ω1::Function, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s
     end
     return U
 end
+nothing #hide #md
 
+#-
 function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Sled; spoiler=true)
     m0 = zeros(5)
     U = zeros(6, 6)
@@ -73,7 +107,9 @@ function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, mod
     end
     return U
 end
+nothing #hide #md
 
+#-
 function RF_pulse_propagator(ω1::Real, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Graham; spoiler=true)
     m0 = zeros(5)
     U = zeros(6, 6)
@@ -88,7 +124,9 @@ function RF_pulse_propagator(ω1::Real, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2
     end
     return U
 end
+nothing #hide #md
 
+#-
 function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Graham; spoiler=true)
     Rrf = graham_saturation_rate_spectral_fast(ω1, B1, ω0, TRF, T2s)
 
@@ -105,7 +143,10 @@ function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, mod
     end
     return U
 end
+nothing #hide #md
 
+# ## Helper functions for Graham's spectral model
+# The following code saves and reuses the saturation rate `Rrf` of an RF pulse to speed up the simulation.
 struct Rrf_Atom
     ω1_sqrtTRF::Float64
     ω1_TRFo2::Float64
@@ -132,28 +173,33 @@ function graham_saturation_rate_spectral_fast(ω1, B1, ω0, TRF, T2s)
     push!(Rrf_Dict, Rrf_Atom(ω1(sqrt(TRF)), ω1(TRF/2), ω1(TRF-sqrt(TRF)), B1, d_ω0, TRF, T2s, Rrf))
     return Rrf
 end
+nothing #hide #md
 
-##
+# ## RF pulse definitions
 function sinc_pulse(α, TRF; nLobes=3)
     nLobes % 2 != 1 ? error() : nothing
     x = (nLobes - 1) / 2 + 1
     ω1(t) = sinc((2t / TRF - 1) * x) * α * x * π / (sinint(x * π) * TRF)
 end
+nothing #hide #md
 
+#-
 function hanning_pulse(α, TRF)
     ω1(t) = α * cos(π * t / TRF - π / 2)^2 * 2 / TRF
 end
+nothing #hide #md
 
+#-
 function gauss_pulse(α, TRF; shape_alpha=2.5)
     y(t) = exp(-((2 * t / TRF - 1) * shape_alpha)^2 / 2)
     ω1(t) = α * (y(t) - y(0)) / (sqrt(π/2) * TRF * erf(shape_alpha/sqrt(2)) / shape_alpha - y(0)*TRF)
 end
+nothing #hide #md
 
+#-
 function CSMT_pulse(α, TRF, TR, ω1rms; ω0=12000π)
-    # ω1_0 = hanning_pulse(α, TRF)
     ω1_0 = gauss_pulse(α, TRF; shape_alpha=2.5) # shape & shape_alpha confirmed by Dr. Teixeira
     ω1ms_0 = quadgk(t -> ω1_0(t)^2, 0, TRF)[1] / TR
-    # ω1ms_0 = hanning_ω1ms(α, TRF, TR; ω0=0)
 
     β = ω1rms^2 / ω1ms_0 - 1
     if β < 0
@@ -165,14 +211,14 @@ function CSMT_pulse(α, TRF, TR, ω1rms; ω0=12000π)
     ω1(t) = ω1_0(t) * wt(t)
     return ω1
 end
+nothing #hide #md
 
-
-##
-# Standard Siemen parameters:
-# TRF = 10.24e-3 s
-# β = 674.1 shape parameter in 1/s
-# μ = 5 shape parameter in rad
-# ω₁ᵐᵃˣ = 4965.910769033364 rad/s – scaled such that the integral over the real part of the pulse (real(ω1 * exp(1im * φ))) equates to 2π
+#-
+#src Standard Siemen parameters:
+#src TRF = 10.24e-3 s
+#src β = 674.1 shape parameter in 1/s
+#src μ = 5 shape parameter in rad
+#src ω₁ᵐᵃˣ = 4965.910769033364 rad/s – scaled such that the integral over the real part of the pulse (real(ω1 * exp(1im * φ))) equates to 2π
 function sech_inversion_pulse(; TRF=10.24e-3, ω₁ᵐᵃˣ=4965.910769033364, μ=5, β=674.1)
     ω1(t) = ω₁ᵐᵃˣ * sech(β * (t - TRF / 2)) # rad/s
     ω0(t) = -μ * β * tanh(β * (t - TRF/2)) # rad/s
@@ -180,8 +226,9 @@ function sech_inversion_pulse(; TRF=10.24e-3, ω₁ᵐᵃˣ=4965.910769033364, �
     φ(t) = φ_u(t) - φ_u(TRF/2)
     return (ω1, ω0, φ, TRF)
 end
+nothing #hide #md
 
-# Shape according to doi:10.1006/jmre.2001.2340 and provided by Dr. O'Brien
+# `Sechn` pulse shape according to [this paper](http://doi.org/10.1006/jmre.2001.2340), confirmed by Dr. O'Brien:
 function sechn_inversion_pulse(; TRF=10.24e-3, ω₁ᵐᵃˣ=10e-6 * 267.522e6, β=240, μ=35, n = 8)
     f1(τ) = sech((β * τ)^n)
     ω1(t) = ω₁ᵐᵃˣ * f1(t - TRF / 2) # rad/s
@@ -192,3 +239,4 @@ function sechn_inversion_pulse(; TRF=10.24e-3, ω₁ᵐᵃˣ=10e-6 * 267.522e6, 
     φ(t) = φ_(t) - φ_(TRF/2)
     return (ω1, ω0, φ, TRF)
 end
+nothing #hide #md

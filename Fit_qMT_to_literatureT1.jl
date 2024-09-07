@@ -1,35 +1,31 @@
-using Pkg
-Pkg.activate(Base.source_path() * "/..")
-Pkg.instantiate()
-using MRIgeneralizedBloch
-using StaticArrays
-using Statistics
-using QuadGK
-using Plots
-plotlyjs(bg=RGBA(31 / 255, 36 / 255, 36 / 255, 1.0), ticks=:native, size=(600, 600))
-
+# # T₁ Mapping methods
+# First, we load the required packages and include some helper functions, which can be found at TODO
 include("helper_functions.jl")
+nothing #hide #md
 
-##
+# Further, we initialize a few empty vectors which will be filled with information about each T₁ mapping method:
 T1_literature = Float64[]
-T1_function = []
+T1_functions = []
 incl_fit = Bool[]
 seq_name = String[]
 seq_type = Symbol[]
+nothing #hide #md
 
+# Next, we define the simulations of each pulse sequence as a function and push this function and auxiliary information to the respective vector.
 
-## #########################################################
-# IR: Stanisz et al. (https://doi.org/10.1002/mrm.20605)
-############################################################
+#src #########################################################
+# ## IR: Stanisz et al.
+# Inversion recovery method described by [Stanisz et al. (2005)](https://doi.org/10.1002/mrm.20605). The following function takes qMT parameters as an input, simulates the signal, performs a mono-exponential T₁ fit as described in the publication, and returns the T₁ estimate. Sequence details are extracted from the publications and complemented with information kindly provided by the authors, as well as educated guesses where the corresponding information was not accessible. The latter two sources are indicated by comments in the functions.
+#src #########################################################
 function calculate_T1_IRStanisz(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
-    TRF_inv = 10e-6 # s – 10us - 20us according to private conversations
+    ## define sequence parameters
+    TRF_inv = 10e-6 # s; 10us - 20us according to private conversations
     TRF_exc = TRF_inv # guessed, but has a negligible effect
     TI = exp.(range(log(1e-3), log(32), 35)) # s
     TD = similar(TI)
     TD .= 20 # s
 
-    # simulate signal with an MT model
+    ## simulate signal with an MT model
     u_inv = RF_pulse_propagator(π / TRF_inv, B1, ω0, TRF_inv, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
     u_exc = RF_pulse_propagator(π / 2 / TRF_exc, B1, ω0, TRF_exc, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
@@ -42,23 +38,26 @@ function calculate_T1_IRStanisz(m0s, R1f, R2f, Rx, R1s, T2s)
         s[i] = steady_state(U)[1]
     end
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T₁ (in s)
     model3(t, p) = p[1] .- p[2] .* exp.(-p[3] * t)
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
 
+# We add the literature T₁ value, the function, and some auxiliary data to the above-initialized vectors:
 push!(T1_literature, 1.084) # ± 0.045s in WM
-push!(T1_function, calculate_T1_IRStanisz)
+push!(T1_functions, calculate_T1_IRStanisz)
 push!(seq_name, "IR Stanisz et al.")
 push!(seq_type, :IR)
+nothing #hide #md
 
 
-## #########################################################
-# IR: Stikhov et al. (https://doi.org/10.1002/mrm.25135)
-############################################################
+#src #########################################################
+# ## IR: Stikhov et al.
+# Inversion recovery method described by [Stikhov et al. (2015)](https://doi.org/10.1002/mrm.25135).
+#src #########################################################
 function calculate_T1_IRStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     nLobes = 3 # confirmed by authors
     TRF_exc = 3.072e-3 # s – confirmed by authors
     TRF_ref = 3e-3 # s – confirmed by authors
@@ -66,18 +65,18 @@ function calculate_T1_IRStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
     TR = 1.55 # s
     TE = 11e-3 # s
 
-    # simulate signal with an MT model
-    # excitation block
+    ## simulate signal with an MT model
+    ## excitation block
     u_exc = RF_pulse_propagator(sinc_pulse(-π / 2, TRF_exc; nLobes=nLobes), B1, ω0, TRF_exc, m0s, R1f, R2f, Rx, R1s, T2s, MT_model; spoiler=true)
     u_ref = RF_pulse_propagator(gauss_pulse(π, TRF_ref), B1, ω0, TRF_ref, m0s, R1f, R2f, Rx, R1s, T2s, MT_model; spoiler=false)
     u_te2 = exp(hamiltonian_linear(0, B1, ω0, (TE - TRF_exc - TRF_ref) / 2, m0s, R1f, R2f, Rx, R1s, 1))
     u_exc = u_ref * u_te2 * u_exc
 
-    # adiabatic inversion pulse confirmed by the authors
+    ## adiabatic inversion pulse confirmed by the authors
     ω1, _, φ, TRF_inv = sech_inversion_pulse() # 360 deg, defined by the intgral over the RF's real part.
     u_inv = RF_pulse_propagator(ω1, B1, φ, TRF_inv, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
-    # relaxation blocks
+    ## relaxation blocks
     u_rti = [exp(hamiltonian_linear(0, B1, ω0, iTI - (TRF_inv + TRF_exc) / 2, m0s, R1f, R2f, Rx, R1s, 1)) for iTI ∈ TI]
     u_rtd = [exp(hamiltonian_linear(0, B1, ω0, TR - iTI - (TRF_inv + TRF_ref + TE) / 2, m0s, R1f, R2f, Rx, R1s, 1)) for iTI ∈ TI]
 
@@ -87,28 +86,31 @@ function calculate_T1_IRStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
         s[i] = steady_state(U)[1]
     end
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T1 (in s)
     model3(t, p) = p[1] .- p[2] .* exp.(-p[3] * t)
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
 
+#-
 push!(T1_literature, 850e-3) # s – peak of histogram
-push!(T1_function, calculate_T1_IRStikhov)
+push!(T1_functions, calculate_T1_IRStikhov)
 push!(seq_name, "IR Stikhov et al.")
 push!(seq_type, :IR)
+nothing #hide #md
 
 
-## #########################################################
-# IR: Preibisch et al. (https://doi.org/10.1002/mrm.21776)
-############################################################
+#src #########################################################
+# ## IR: Preibisch et al.
+# Inversion recovery method described by [Preibisch et al. (2009)](https://doi.org/10.1002/mrm.21776).
+#src #########################################################
 function calculate_T1_IRPreibisch(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     TI = [100, 200, 300, 400, 600, 800, 1000, 1200, 1600, 2000, 2600, 3200, 3800, 4400, 5000] .* 1e-3 # s
     TD = 20 # s
     TE = 27e-3 # s
 
-    # The adiabatic inversion pulse was identical to the one described in http://doi.org/10.1002/mrm.20552 (per private communications with Dr. Deichmann)
+    ## The adiabatic inversion pulse was identical to the one described in http://doi.org/10.1002/mrm.20552 (per private communications with Dr. Deichmann)
     TRF_inv = 8.192e-3 # s
     β = 4.5 # 1/s
     μ = 5 # rad
@@ -116,10 +118,10 @@ function calculate_T1_IRPreibisch(m0s, R1f, R2f, Rx, R1s, T2s)
     ω1_inv(t) = ω₁ᵐᵃˣ * sech(β * (2t / TRF_inv - 1)) # rad/s
     φ_inv(t)  = μ * log(sech(β * (2t / TRF_inv - 1))) # rad
 
-    # simulate signal with an MT model
+    ## simulate signal with an MT model
     u_inv = RF_pulse_propagator(ω1_inv, B1, φ_inv, TRF_inv, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
-    # The shape of the excitation pulse was kindly provided by Dr. Deichmann
+    ## The shape of the excitation pulse was kindly provided by Dr. Deichmann
     TRF_exc = 2.5e-3 # s
     _ω1_exc(t) = sinc(2 * abs(2t/TRF_exc-1)^0.88) * cos(π/2 * (2t/TRF_exc-1)) # rad/s
     ω1_scale = π/2 / quadgk(_ω1_exc, 0, TRF_exc)[1]
@@ -128,7 +130,7 @@ function calculate_T1_IRPreibisch(m0s, R1f, R2f, Rx, R1s, T2s)
     u_te = exp(hamiltonian_linear(0, B1, ω0, TE - TRF_exc / 2, m0s, R1f, R2f, Rx, R1s, 1))
     u_exc = u_te * u_exc
 
-    # relaxation blocks
+    ## relaxation blocks
     u_ti = [exp(hamiltonian_linear(0, B1, ω0, iTI - (TRF_inv + TRF_exc) / 2, m0s, R1f, R2f, Rx, R1s, 1)) for iTI ∈ TI]
     u_td = exp(hamiltonian_linear(0, B1, ω0, TD - TRF_inv / 2 - TE, m0s, R1f, R2f, Rx, R1s, 1))
 
@@ -138,38 +140,41 @@ function calculate_T1_IRPreibisch(m0s, R1f, R2f, Rx, R1s, T2s)
         s[i] = steady_state(U)[1]
     end
 
-    # fit mono-expential model and return T1 (in s)
-    # Fixed κ per private communications with Dr. Deichmann
+    ## fit mono-expential model and return T1 (in s)
+    ## Fixed κ per private communications with Dr. Deichmann
     κ = 1.964
     model2(t, p) = p[1] .* (1 .- κ .* exp.(-p[2] * t))
     fit = curve_fit(model2, TI, s, [1, 0.8])
     return 1 / fit.param[end]
 end
 
+#-
 push!(T1_literature, 881e-3) # s – median of WM ROIs; mean is 0.882 s
-push!(T1_function, calculate_T1_IRPreibisch)
+push!(T1_functions, calculate_T1_IRPreibisch)
 push!(seq_name, "IR Preibisch et al.")
 push!(seq_type, :IR)
+nothing #hide #md
 
 
-## #########################################################
-# IR: Shin et al. (https://doi.org/10.1002/mrm.21836)
-############################################################
+#src #########################################################
+# ## IR: Shin et al.
+# Inversion recovery method described by [Shin et al. (2009)](https://doi.org/10.1002/mrm.21836).
+#src #########################################################
 function calculate_T1_IRShin(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     TI = exp.(range(log(34e-3), log(15), 10)) # s – Authors did not recall the TIs, but said they had at least 3–4 short times
     TR = 30 # s
     TRF_exc = 2.56e-3 # from Shin's memory
 
-    # simulate signal with an MT model
-    # EPI readout
+    ## simulate signal with an MT model
+    ## EPI readout
     u_exc = RF_pulse_propagator(sinc_pulse(16 / 180 * π, TRF_exc; nLobes=3), B1, ω0, TRF_exc, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
-    # adiabatic inversion pulse
+    ## adiabatic inversion pulse
     ω1, _, φ, TRF_inv = sech_inversion_pulse() # Shin confirmed "standard Siemens" adiabatic inversion pulse
     u_inv = RF_pulse_propagator(ω1, B1, φ, TRF_inv, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
-    # relaxation blocks
+    ## relaxation blocks
     u_rti = [exp(hamiltonian_linear(0, B1, ω0, iTI - (TRF_inv + TRF_exc) / 2, m0s, R1f, R2f, Rx, R1s, 1)) for iTI ∈ TI]
     u_rtd = [exp(hamiltonian_linear(0, B1, ω0, TR - iTI - (TRF_inv + TRF_exc) / 2, m0s, R1f, R2f, Rx, R1s, 1)) for iTI ∈ TI]
 
@@ -179,23 +184,26 @@ function calculate_T1_IRShin(m0s, R1f, R2f, Rx, R1s, T2s)
         s[i] = steady_state(U)[1]
     end
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T1 (in s)
     model3(t, p) = p[1] .- p[2] .* exp.(-p[3] * t)
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
 
+#-
 push!(T1_literature, 0.943) # ± 0.057 s in WM
-push!(T1_function, calculate_T1_IRShin)
+push!(T1_functions, calculate_T1_IRShin)
 push!(seq_name, "IR Shin et al.")
 push!(seq_type, :IR)
+nothing #hide #md
 
 
-## #########################################################
-# LL: Shin et al. (https://doi.org/10.1002/mrm.21836)
-############################################################
+#src #########################################################
+# ## LL: Shin et al.
+# Look-Locker method described by [Shin et al. (2009)](https://doi.org/10.1002/mrm.21836).
+#src #########################################################
 function calculate_T1_LLShin(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     Nslices = 28 # (inner loop)
     iSlice = Nslices - 18 # guessed from cf. Fig. 6 and 7, the author suggested that the slices were acquired in ascending order
 
@@ -211,7 +219,7 @@ function calculate_T1_LLShin(m0s, R1f, R2f, Rx, R1s, T2s)
     Δω0 = (nLobes + 1) * 2π / TRF_exc # rad/s
     ω0slice = ((1:Nslices) .- iSlice) * Δω0
 
-    # simulate signal with an MT model
+    ## simulate signal with an MT model
     ω1, _, φ, TRF_inv = sech_inversion_pulse() # Shin confirmed "standard Siemens" adiabatic inversion pulse
     u_inv = RF_pulse_propagator(ω1, B1, φ, TRF_inv, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
@@ -245,42 +253,45 @@ function calculate_T1_LLShin(m0s, R1f, R2f, Rx, R1s, T2s)
         end
     end
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T1 (in s)
     model3(t, p) = p[1] .- p[2] .* exp.(-p[3] * t)
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     R1a_est = fit.param[end] + log(cos(α_exc)) / TR
     return 1 / R1a_est
 end
 
+#-
 push!(T1_literature, 0.964) # ± 116s in WM
-push!(T1_function, calculate_T1_LLShin)
+push!(T1_functions, calculate_T1_LLShin)
 push!(seq_name, "LL Shin et al.")
 push!(seq_type, :LL)
+nothing #hide #md
 
 
-## #########################################################
-# IR: Lu et al. (https://doi.org/10.1002/jmri.20356); reported T1 = (748 ± 64)ms in the splenium of the CC and (699 ± 38)ms in WM
-############################################################
+#src #########################################################
+# ## IR: Lu et al.
+# Inversion-recover method described by [Lu et al. (2005)](https://doi.org/10.1002/jmri.20356).
+#src #########################################################
 function calculate_T1_IRLu(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     TRF_exc = 1e-3 # s – 0.5-2 ms according to P Zijl
     TI = [180, 630, 1170, 1830, 2610, 3450, 4320, 5220, 6120, 7010] .* 1e-3 # s
     TD = 8 # s
     TE = 42e-3 # s
 
-    # simulate signal with an MT model
-    # excitation block; GRASE RO w/ TSE factor 4
+    ## simulate signal with an MT model
+    ## excitation block; GRASE RO w/ TSE factor 4
     u_exc = RF_pulse_propagator(sinc_pulse(π / 2, TRF_exc; nLobes=3), B1, ω0, TRF_exc, m0s, R1f, R2f, Rx, R1s, T2s, MT_model; spoiler=true)
     u_ref = RF_pulse_propagator(sinc_pulse(π, TRF_exc; nLobes=3), B1, ω0, TRF_exc, m0s, R1f, R2f, Rx, R1s, T2s, MT_model; spoiler=false)
     u_te1 = exp(hamiltonian_linear(0, B1, ω0, TE / 4 - TRF_exc, m0s, R1f, R2f, Rx, R1s, 1))
     u_te234 = exp(hamiltonian_linear(0, B1, ω0, TE / 4 - TRF_exc / 2, m0s, R1f, R2f, Rx, R1s, 1))
     u_exc = u_te234 * u_ref * u_te234^2 * u_ref * u_te1 * u_exc # 2 refocusing pulses before the RO
 
-    # adiabatic inversion pulse
+    ## adiabatic inversion pulse
     ω1, _, φ, TRF_inv = sech_inversion_pulse(ω₁ᵐᵃˣ=4965.910769033364 * 750 / 360) # nom. α = 750deg according to P. Zijl
     u_inv = RF_pulse_propagator(ω1, B1, φ, TRF_inv, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
-    # relaxation blocks
+    ## relaxation blocks
     u_ti = [exp(hamiltonian_linear(0, B1, ω0, iTI - (TRF_inv + TRF_exc) / 2, m0s, R1f, R2f, Rx, R1s, 1)) for iTI ∈ TI]
 
     u_et = u_te234 * u_ref * u_te234^2 * u_ref * u_te234 # 2 refocusing pulses after the RO
@@ -292,28 +303,31 @@ function calculate_T1_IRLu(m0s, R1f, R2f, Rx, R1s, T2s)
         s[i] = abs(steady_state(U)[1])
     end
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T1 (in s)
     model3(t, p) = abs.(p[1] .* (1 .- p[2] .* exp.(-p[3] * t)))
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
 
-push!(T1_literature, 0.735) # s – median of WM ROIs
-push!(T1_function, calculate_T1_IRLu)
+#-
+push!(T1_literature, 0.735) # s; median of WM ROIs; reported T1 = (748 ± 64)ms in the splenium of the CC and (699 ± 38)ms in WM
+push!(T1_functions, calculate_T1_IRLu)
 push!(seq_name, "IR Lu et al.")
 push!(seq_type, :IR)
+nothing #hide #md
 
 
-## #########################################################
-# LL: Stikhov et al. (https://doi.org/10.1002/mrm.25135)
-############################################################
+#src #########################################################
+# ## LL: Stikhov et al.
+# Look-Locker method described by [Stikhov et al. (2015)](https://doi.org/10.1002/mrm.25135).
+#src #########################################################
 function calculate_T1_LLStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     TR = 1.55 # s
     TI = [30e-3, 530e-3, 1.03, 1.53] # s
     TRF_inv = 720e-6 # s – for 180deg pulse, 90deg pulse are half as long
 
-    # simulate signal with an MT model
+    ## simulate signal with an MT model
     u_90  = MRIgeneralizedBloch.xs_destructor(nothing) * RF_pulse_propagator(π / TRF_inv, B1, ω0, TRF_inv / 2, m0s, R1f, R2f, Rx, R1s, T2s, MT_model, spoiler=true)
     u_inv = MRIgeneralizedBloch.xs_destructor(nothing) * RF_pulse_propagator(π / TRF_inv, B1, ω0, TRF_inv,     m0s, R1f, R2f, Rx, R1s, T2s, MT_model, spoiler=false)
     u_m90 = MRIgeneralizedBloch.xs_destructor(nothing) * RF_pulse_propagator(π / TRF_inv, B1, ω0, TRF_inv / 2, m0s, R1f, R2f, Rx, R1s, T2s, MT_model, spoiler=false)
@@ -348,8 +362,8 @@ function calculate_T1_LLStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
         s[i] = m[1]
     end
 
-    # fit mono-expential model and return T1 (in s)
-    # model as provided by Stikhov et al. in a private communication
+    ## fit mono-expential model and return T1 (in s)
+    ## model as provided by Stikhov et al. in a private communication
     function model_num(t, p)
         any(t .!= TI) ? error() : nothing
 
@@ -384,23 +398,26 @@ function calculate_T1_LLStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
     return fit.param[end]
 end
 
+#-
 push!(T1_literature, 0.750) # s – peak of histogram; cf. https://doi.org/10.1016/j.mri.2016.08.021
-push!(T1_function, calculate_T1_LLStikhov)
+push!(T1_functions, calculate_T1_LLStikhov)
 push!(seq_name, "LL Stikhov et al.")
 push!(seq_type, :LL)
+nothing #hide #md
 
 
-## #########################################################
-# vFA: Stikhov et al. (https://doi.org/10.1002/mrm.25135)
-############################################################
+#src #########################################################
+# ## vFA: Stikhov et al.
+# Variable flip-angle method described by [Stikhov et al. (2015)](https://doi.org/10.1002/mrm.25135).
+#src #########################################################
 function calculate_T1_vFAStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     α = [3, 10, 20, 30] * π / 180 # rad
     TR = 15e-3 # s
     TRF = 2e-3 # s – confirmed by authors
     nLobes = 9 # confirmed by authors
 
-    # simulate signal with an MT model
+    ## simulate signal with an MT model
     s = similar(α)
     for i in eachindex(α)
         u_exc = RF_pulse_propagator(sinc_pulse(α[i], TRF; nLobes=nLobes), B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
@@ -410,29 +427,32 @@ function calculate_T1_vFAStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
         s[i] = steady_state(U)[1]
     end
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T1 (in s)
     f = lm(@formula(Y ~ X), DataFrame(X=s ./ tan.(α), Y=s ./ sin.(α)))
     T1_est = -TR / log(f.model.pp.beta0[2])
     return T1_est
 end
 
+#-
 push!(T1_literature, 1.07) # s – peak of histogram (cf. https://doi.org/10.1016/j.mri.2016.08.021)
-push!(T1_function, calculate_T1_vFAStikhov)
+push!(T1_functions, calculate_T1_vFAStikhov)
 push!(seq_name, "vFA Stikhov et al.")
 push!(seq_type, :vFA)
+nothing #hide #md
 
 
-## #########################################################
-# vFA: Cheng et al. (https://doi.org/10.1002/mrm.20791)
-############################################################
+#src #########################################################
+# ## vFA: Cheng et al.
+# Variable flip-angle method described by [Cheng et al. (2006)](https://doi.org/10.1002/mrm.20791).
+#src #########################################################
 function calculate_T1_vFACheng(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     α = [2, 9, 19] * π / 180 # rad
     TR = 6.1e-3 # s
     TRF = 1e-3 # s – guessed
     nLobes = 3 # guessed
 
-    # simulate signal with an MT model
+    ## simulate signal with an MT model
     s = similar(α)
     for i in eachindex(α)
         u_exc = RF_pulse_propagator(sinc_pulse(α[i], TRF; nLobes=nLobes), B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
@@ -442,27 +462,30 @@ function calculate_T1_vFACheng(m0s, R1f, R2f, Rx, R1s, T2s)
         s[i] = steady_state(U)[1]
     end
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T1 (in s)
     f = lm(@formula(Y ~ X), DataFrame(X=s ./ tan.(α), Y=s ./ sin.(α)))
     T1_est = -TR / log(f.model.pp.beta0[2])
     return T1_est
 end
 
+#-
 push!(T1_literature, 1.0855) # s – mean of two volunteers
-push!(T1_function, calculate_T1_vFACheng)
+push!(T1_functions, calculate_T1_vFACheng)
 push!(seq_name, "vFA Cheng et al.")
 push!(seq_type, :vFA)
+nothing #hide #md
 
 
-## #########################################################
-# vFA: Chavez & Stanisz (https://doi.org/10.1002/nbm.2769)
-############################################################
+#src #########################################################
+# ## vFA: Chavez & Stanisz
+# Variable flip-angle method described by [Chavez & Stanisz (2012)](https://doi.org/10.1002/nbm.2769).
+#src #########################################################
 function calculate_T1_vFA_Chavez(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     α = [1, 40, 130, 150] * π / 180 # rad
     TR = 40e-3 # s
 
-    # simulate signal with an MT model
+    ## simulate signal with an MT model
     s = similar(α)
     for i in eachindex(α)
         TRF = α[i] / (π/0.5e-3) # s – guessed, incl. constant ω1 / variable TRF
@@ -473,8 +496,8 @@ function calculate_T1_vFA_Chavez(m0s, R1f, R2f, Rx, R1s, T2s)
         s[i] = steady_state(U)[1]
     end
 
-    # fit mono-expential model and return T1 (in s)
-    # NLLS fit as described in the paper
+    ## fit mono-expential model and return T1 (in s)
+    ## NLLS fit as described in the paper
     function vFA_signal(α, p)
         S0, B1, T1 = p
         E1 = exp(-TR / T1)
@@ -485,22 +508,25 @@ function calculate_T1_vFA_Chavez(m0s, R1f, R2f, Rx, R1s, T2s)
     return fit_vFA.param[end]
 end
 
-push!(T1_literature, 1.044) # s – median of corpus callosum ROIs
-push!(T1_function, calculate_T1_vFA_Chavez)
+#-
+push!(T1_literature, 1.044) # s; median of corpus callosum ROIs
+push!(T1_functions, calculate_T1_vFA_Chavez)
 push!(seq_name, "vFA Chavez & Stanisz")
 push!(seq_type, :vFA)
+nothing #hide #md
 
 
-## #########################################################
-# vFA: Preibisch et al. (https://doi.org/10.1002/mrm.21776)
-############################################################
+#src #########################################################
+# ## vFA: Preibisch et al.
+# Variable flip-angle method described by [Preibisch et al. (2009)](https://doi.org/10.1002/mrm.21776).
+#src #########################################################
 function calculate_T1_vFAPreibisch(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     α = [4, 18] * π / 180 # rad
     TR = 7.6e-3 # s
     TRF = 0.2e-3 # s – confirmed by Dr. Deichmann
 
-    # simulate signal with an MT model
+    ## simulate signal with an MT model
     s = similar(α)
     for i in eachindex(α)
         u_exc = RF_pulse_propagator(α[i] / TRF, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
@@ -510,26 +536,29 @@ function calculate_T1_vFAPreibisch(m0s, R1f, R2f, Rx, R1s, T2s)
         s[i] = steady_state(U)[1]
     end
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T1 (in s)
     f = lm(@formula(Y ~ X), DataFrame(X=s .* α, Y=s ./ α))
     T1_est = -2 * TR * f.model.pp.beta0[2]
     return T1_est
 end
 
-push!(T1_literature, 0.940) # s – median of ROIs; mean = 0.951s
-push!(T1_function, calculate_T1_vFAPreibisch)
+#-
+push!(T1_literature, 0.940) # s; median of ROIs; mean = 0.951s
+push!(T1_functions, calculate_T1_vFAPreibisch)
 push!(seq_name, "vFA Preibisch et al.")
 push!(seq_type, :vFA)
+nothing #hide #md
 
 
-## #########################################################
-# vFA - Hybrid FLASH-EPI: Preibisch et al. (http://doi.org/10.1002/mrm.21969)
-############################################################
+#src #########################################################
+# ## vFA - Hybrid FLASH-EPI: Preibisch et al.
+# Variable flip-angle method with a Hybrid FLASH-EPI readout described by [Preibisch et al. (2009)](http://doi.org/10.1002/mrm.21969).
+#src #########################################################
 function calculate_T1_vFAPreibisch_HYB(m0s, R1f, R2f, Rx, R1s, T2s, α, TR)
-    # define sequence parameters
+    ## define sequence parameters
     TRF = 0.2e-3 # s – confirmed by Dr. Deichmann
 
-    # simulate signal with an MT model
+    ## simulate signal with an MT model
     s = similar(α)
     for i in eachindex(α)
         u_exc = RF_pulse_propagator(α[i] / TRF, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
@@ -538,39 +567,46 @@ function calculate_T1_vFAPreibisch_HYB(m0s, R1f, R2f, Rx, R1s, T2s, α, TR)
         s[i] = steady_state(U)[1]
     end
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T1 (in s)
     SL = (s[2]/sin(α[2]) - s[1]/sin(α[1])) / (s[2]/tan(α[2]) - s[1]/tan(α[1]))
     T1_est = -TR / log(SL)
     return T1_est
 end
 
+# For this sequence, we simulate three different settings with different flip angles and repetition times:
 push!(T1_literature, 0.955) # s
-push!(T1_function, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFAPreibisch_HYB(m0s, R1f, R2f, Rx, R1s, T2s, [4, 22] .* π ./ 180, 12.5e-3))
+push!(T1_functions, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFAPreibisch_HYB(m0s, R1f, R2f, Rx, R1s, T2s, [4, 22] .* π ./ 180, 12.5e-3))
 push!(seq_name, "vFA HYB12.5ms Preibisch et al.")
 push!(seq_type, :vFA)
+nothing #hide #md
 
+#-
 push!(T1_literature, 0.949) # s
-push!(T1_function, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFAPreibisch_HYB(m0s, R1f, R2f, Rx, R1s, T2s, [4, 24] .* π ./ 180, 15.2e-3))
+push!(T1_functions, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFAPreibisch_HYB(m0s, R1f, R2f, Rx, R1s, T2s, [4, 24] .* π ./ 180, 15.2e-3))
 push!(seq_name, "vFA HYB15.2ms Preibisch et al.")
 push!(seq_type, :vFA)
+nothing #hide #md
 
+#-
 push!(T1_literature, 0.959) # s
-push!(T1_function, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFAPreibisch_HYB(m0s, R1f, R2f, Rx, R1s, T2s, [4, 25] .* π ./ 180, 15.9e-3))
+push!(T1_functions, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFAPreibisch_HYB(m0s, R1f, R2f, Rx, R1s, T2s, [4, 25] .* π ./ 180, 15.9e-3))
 push!(seq_name, "vFA HYB15.9ms Preibisch et al.")
 push!(seq_type, :vFA)
+nothing #hide #md
 
 
-## #########################################################
-# vFA: Teixeira et al. (http://doi.org/10.1002/mrm.27442)
-############################################################
+#src #########################################################
+# ## vFA: Teixeira et al.
+# Variable flip-angle method described by [Teixeira et al. (2019)](http://doi.org/10.1002/mrm.27442)
+#src #########################################################
 function calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, ω1rms)
-    # define sequence parameters
+    ## define sequence parameters
     α = [6, 12, 18] * π / 180 # rad – provided Dr. Teixeira
     TR = 15e-3 # s – provided by Dr. Teixeira for Fig. 7
     TRF = 3e-3 # s – confirmed by Dr. Teixeira
     ω0_CSMT = 6e3 * 2π # 6kHz – confirmed by Dr. Teixeira
 
-    # simulate signal with an MT model
+    ## simulate signal with an MT model
     s = similar(α)
     Threads.@threads for i in eachindex(α)
         u_exc = RF_pulse_propagator(CSMT_pulse(α[i], TRF, TR, ω1rms, ω0=ω0_CSMT), B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
@@ -580,51 +616,62 @@ function calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, ω1rms)
         s[i] = steady_state(U)[1]
     end
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T1 (in s)
     f = lm(@formula(Y ~ X), DataFrame(X=s ./ tan.(α), Y=s ./ sin.(α))) # DESPOT1 confirmed by Dr. Teixeira
     T1_est = -TR / log(f.model.pp.beta0[2])
     return T1_est
 end
 
+# For this sequence, we simulate five different B₁-RMS values:
 push!(T1_literature, 0.825) # s – read from Fig. 7
-push!(T1_function, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, 0.4e-6 * 267.522e6)) # rad/s
+push!(T1_functions, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, 0.4e-6 * 267.522e6)) # rad/s
 push!(seq_name, "vFA CSMT w/ B1rms = 0.4uT Teixeira et al.")
 push!(seq_type, :vFA)
+nothing #hide #md
 
+#-
 push!(T1_literature, 0.775) # s – read from Fig. 7
-push!(T1_function, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, 0.8e-6 * 267.522e6)) # rad/s
+push!(T1_functions, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, 0.8e-6 * 267.522e6)) # rad/s
 push!(seq_name, "vFA CSMT w/ B1rms = 0.8uT Teixeira et al.")
 push!(seq_type, :vFA)
+nothing #hide #md
 
+#-
 push!(T1_literature, 0.73) # s – read from Fig. 7
-push!(T1_function, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, 1.2e-6 * 267.522e6)) # rad/s
+push!(T1_functions, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, 1.2e-6 * 267.522e6)) # rad/s
 push!(seq_name, "vFA CSMT w/ B1rms = 1.2uT Teixeira et al.")
 push!(seq_type, :vFA)
+nothing #hide #md
 
+#-
 push!(T1_literature, 0.68) # s – read from Fig. 7
-push!(T1_function, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, 1.6e-6 * 267.522e6)) # rad/s
+push!(T1_functions, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, 1.6e-6 * 267.522e6)) # rad/s
 push!(seq_name, "vFA CSMT w/ B1rms = 1.6uT Teixeira et al.")
 push!(seq_type, :vFA)
+nothing #hide #md
 
+#-
 push!(T1_literature, 0.64) # s – read from Fig. 7
-push!(T1_function, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, 2e-6 * 267.522e6)) # rad/s
+push!(T1_functions, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, 2e-6 * 267.522e6)) # rad/s
 push!(seq_name, "vFA CSMT w/ B1rms = 2uT Teixeira et al.")
 push!(seq_type, :vFA)
+nothing #hide #md
 
 
-## #########################################################
-# MP2RAGE: Marques et al. (https://doi.org/10.1016/j.neuroimage.2009.10.002)
-############################################################
+#src #########################################################
+# ## MP2RAGE: Marques et al.
+# MP₂RAGE method described by [Marques et al. (2010)](https://doi.org/10.1016/j.neuroimage.2009.10.002).
+#src #########################################################
 function calculate_T1_MP2RAGE(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     α = [4, 5] .* π / 180 # rad
     TRl = 6.75 # s
     TR_FLASH = 7.9e-3 # s
     TI = [0.8, 3.2] # s
     Nz = 160 ÷ 3
 
-    # simulate signal with an MT model
-    # adiabatic inversion pulse
+    ## simulate signal with an MT model
+    ## adiabatic inversion pulse
     ω1, _, φ, TRF_inv = sechn_inversion_pulse(n=8, ω₁ᵐᵃˣ=25e-6 * 267.522e6) # HS8 pulse confirmed by Dr. Marques; amplitude chosen close to the max. of a typical 3T system
     u_inv = u_sp * RF_pulse_propagator(ω1, B1, φ, TRF_inv, m0s, R1f, R2f, Rx, R1s, T2s, MT_model) * u_sp
 
@@ -636,8 +683,8 @@ function calculate_T1_MP2RAGE(m0s, R1f, R2f, Rx, R1s, T2s)
     u_tb = exp(hamiltonian_linear(0, B1, ω0, tb, m0s, R1f, R2f, Rx, R1s, 1))
     u_tc = exp(hamiltonian_linear(0, B1, ω0, tc, m0s, R1f, R2f, Rx, R1s, 1))
 
-    # excitation blocks
-    # binomial water excitation pulses; 1-2-1 pulse scheme confirmed for the Siemens product sequence; not specifically for the prototype.
+    ## excitation blocks
+    ## binomial water excitation pulses; 1-2-1 pulse scheme confirmed for the Siemens product sequence; not specifically for the prototype.
     TRF_bin = 0.2e-3 # s – guessed, but has little influence the estimated T1
     τ = 1 / (2 * 430) - TRF_bin # s – fat-water shift = 440Hz
     TRF_exc = 2τ + 3TRF_bin # s
@@ -656,8 +703,8 @@ function calculate_T1_MP2RAGE(m0s, R1f, R2f, Rx, R1s, T2s)
     u_exc1 = u_te * u_exc1 * u_sp * u_te
     u_exc2 = u_te * u_exc2 * u_sp * u_te
 
-    # Propagation matrix in temporal order:
-    # U = u_tc * u_exc2^Nz * u_tb * u_exc1^Nz * u_ta * u_inv
+    ## Propagation matrix in temporal order:
+    ## U = u_tc * u_exc2^Nz * u_tb * u_exc1^Nz * u_ta * u_inv
     U1 = u_exc1^(Nz / 2) * u_ta * u_inv * u_tc * u_exc2^Nz * u_tb * u_exc1^(Nz / 2)
     U2 = u_exc2^(Nz / 2) * u_tb * u_exc1^Nz * u_ta * u_inv * u_tc * u_exc2^(Nz / 2)
 
@@ -665,7 +712,7 @@ function calculate_T1_MP2RAGE(m0s, R1f, R2f, Rx, R1s, T2s)
     s2 = steady_state(U2)[1]
     sm = s1' * s2 / (abs(s1)^2 + abs(s2)^2)
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T1 (in s)
     function MP2RAGE_signal(T1)
         eff_inv = 0.96 # from paper
 
@@ -687,25 +734,28 @@ function calculate_T1_MP2RAGE(m0s, R1f, R2f, Rx, R1s, T2s)
     return fit.param[1]
 end
 
+#-
 push!(T1_literature, 0.81) # ± 0.03 s
-push!(T1_function, calculate_T1_MP2RAGE)
+push!(T1_functions, calculate_T1_MP2RAGE)
 push!(seq_name, "MP2RAGE Marques et al.")
 push!(seq_type, :MP2RAGE)
+nothing #hide #md
 
 
-## #########################################################
-# MPRAGE: Wright et al. (http://doi.org/10.1007/s10334-008-0104-8)
-############################################################
+#src #########################################################
+# MPRAGE: Wright et al.
+# MPRAGE method described by [Wright et al. (2008)](http://doi.org/10.1007/s10334-008-0104-8).
+#src #########################################################
 function calculate_T1_MPRAGE_Wright(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     TRl = 5 # s
     TR_FLASH = 11e-3 # s
     TE = 6.7e-3 # s
     TI = [160, 190, 285, 441, 680, 1050, 1619, 2100] .* 1e-3 # s
     Nz = 256
 
-    # simulate signal with an MT model
-    # adiabatic inversion pulse
+    ## simulate signal with an MT model
+    ## adiabatic inversion pulse
     TRF_inv = 13.5e-3 # s – from the paper
     β = 600 # 1/s – picked for 10kHz bandwidth
     μ = 5  # rad – 50 rad would match 10 kHz bandwidth, 5 rad chosen for computation speed (makes little difference)
@@ -713,7 +763,7 @@ function calculate_T1_MPRAGE_Wright(m0s, R1f, R2f, Rx, R1s, T2s)
     ω1, _, φ, TRF_inv = sech_inversion_pulse(TRF=TRF_inv, β=β, μ=μ, ω₁ᵐᵃˣ=ω₁ᵐᵃˣ) # standard Philips inverson pulse, likely hyperbolic secant, as confirmed by Dr. Gowland
     u_inv = u_sp * RF_pulse_propagator(ω1, B1, φ, TRF_inv, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
-    # excitation blocks
+    ## excitation blocks
     α = (8/20:8/20:8) .* π / 180 # rad – pattern confirmed by Dr. Gowland
     TRF_exc = 0.67e-3 # s
     nLobes = 7 # sinc pulses confirmed by Dr. Gowland; number of lobes guessed guessed to approximate the 11.9kHz bandwidth discussed in the paper
@@ -732,12 +782,12 @@ function calculate_T1_MPRAGE_Wright(m0s, R1f, R2f, Rx, R1s, T2s)
         u_ti = exp(hamiltonian_linear(0, B1, ω0, ti, m0s, R1f, R2f, Rx, R1s, 1))
         u_tc = exp(hamiltonian_linear(0, B1, ω0, tc, m0s, R1f, R2f, Rx, R1s, 1))
 
-        # Propagation matrix in temporal order: U = u_tc * u_exc20^(Nz-20) * ... u_exc2 * u_exc1 * u_ti * u_inv
+        ## Propagation matrix in temporal order: U = u_tc * u_exc20^(Nz-20) * ... u_exc2 * u_exc1 * u_ti * u_inv
         U = u_exc_ramp * u_ti * u_inv * u_tc * u_exc[end]^(Nz - length(α))
         s[iTI] = steady_state(U)[1] # extract x-magnetization
     end
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T1 (in s)
     function MPRAGE_mz(TI, p)
         T1, M0, α_inv = p
 
@@ -768,7 +818,7 @@ function calculate_T1_MPRAGE_Wright(m0s, R1f, R2f, Rx, R1s, T2s)
             u_tr = exp(hamiltonian_T1(TR_FLASH, 1/T1))
             u_tc = exp(hamiltonian_T1(tc, 1/T1))
 
-            # Propagation matrix in temporal order: U = u_tc * u_exc20^(Nz-20) * ... u_exc2 * u_exc1 * u_ta * u_inv
+            ## Propagation matrix in temporal order: U = u_tc * u_exc20^(Nz-20) * ... u_exc2 * u_exc1 * u_ta * u_inv
             U = u_tr * pulse_propgator(α[end])
             for i in (length(α)-1):-1:1
                 U = U * u_tr * pulse_propgator(α[i])
@@ -783,25 +833,28 @@ function calculate_T1_MPRAGE_Wright(m0s, R1f, R2f, Rx, R1s, T2s)
     return fit.param[1]
 end
 
+#-
 push!(T1_literature, 0.84) # s
-push!(T1_function, calculate_T1_MPRAGE_Wright)
+push!(T1_functions, calculate_T1_MPRAGE_Wright)
 push!(seq_name, "MPRAGE Wright et al.")
 push!(seq_type, :MP2RAGE)
+nothing #hide #md
 
 
-## #########################################################
-# IR w/ adiabatic inversion pulse: Wright et al. (http://doi.org/10.1007/s10334-008-0104-8)
-############################################################
+#src #########################################################
+# ## Adiabatic IR: Wright et al.
+# Inversion-recovery method with adiabatic inversion pulse described by [Wright et al. (2008)](http://doi.org/10.1007/s10334-008-0104-8).
+#src #########################################################
 function calculate_T1_IR_EPI_Wright(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     TI = [120, 200, 400, 600, 900, 1500, 2100, 3000, 4000] .* 1e-3 # s
     TR = 35 # s
     TE = 45e-3 # s
     TRF_exc = 7.7e-3 # s
     nLobes = 1 # chose to match 395 Hz bandwidth
 
-    # simulate signal with an MT model
-    # adiabatic inversion pulse
+    ## simulate signal with an MT model
+    ## adiabatic inversion pulse
     TRF_inv = 17.51e-3 # s
     β = 500 # 1/s – chosen to fit 713Hz bandwidth
     μ = 5   # rad – chosen to fit 713Hz bandwidth
@@ -809,11 +862,11 @@ function calculate_T1_IR_EPI_Wright(m0s, R1f, R2f, Rx, R1s, T2s)
     ω1, _, φ, TRF_inv = sech_inversion_pulse(TRF=TRF_inv, β=β, μ=μ, ω₁ᵐᵃˣ=ω₁ᵐᵃˣ)
     u_inv = u_sp * RF_pulse_propagator(ω1, B1, φ, TRF_inv, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
-    # relaxation blocks
+    ## relaxation blocks
     u_ti = [exp(hamiltonian_linear(0, B1, ω0, iTI - TRF_inv/2 - TRF_exc/2, m0s, R1f, R2f, Rx, R1s, 1)) for iTI ∈ TI]
     u_td = [exp(hamiltonian_linear(0, B1, ω0,  TR - TRF_inv/2 - iTI - TE , m0s, R1f, R2f, Rx, R1s, 1)) for iTI ∈ TI]
 
-    # excitation block
+    ## excitation block
     u_exc = RF_pulse_propagator(sinc_pulse(π / 2, TRF_exc; nLobes=nLobes), B1, ω0, TRF_exc, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
     u_te = exp(hamiltonian_linear(0, B1, ω0, TE - TRF_exc / 2, m0s, R1f, R2f, Rx, R1s, 1))
     u_exc = u_te * u_exc
@@ -824,39 +877,42 @@ function calculate_T1_IR_EPI_Wright(m0s, R1f, R2f, Rx, R1s, T2s)
         s[i] = steady_state(U)[1]
     end
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T1 (in s)
     model3(t, p) = p[1] .* (1 .- p[2] .* exp.(-p[3] * t)) # p[2] = (1 - cos(α))
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
 
+#-
 push!(T1_literature, 0.9) # s – read from Fig. 5
-push!(T1_function, calculate_T1_IR_EPI_Wright)
+push!(T1_functions, calculate_T1_IR_EPI_Wright)
 push!(seq_name, "IR EPI Wright et al.")
 push!(seq_type, :IR)
+nothing #hide #md
 
 
-## #########################################################
-# IR w/ adiabatic inversion pulse: Reynolds et al. (https://doi.org/10.1002/nbm.4936)
-############################################################
+#src #########################################################
+# ## Adiabatic IR: Reynolds et al.
+# Inversion-recovery method with adiabatic inversion pulse described by [Reynolds et al. (2023)](https://doi.org/10.1002/nbm.4936).
+#src #########################################################
 function calculate_T1_IRReynolds_adiabatic(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     TRF_exc = 1e-3 # s – guessed
     nLobes = 3 # s – guessed
     TI = [5.5, 10.2, 35.8, 66.9, 125, 234, 598, 818, 1118, 1529, 3910, 5348] .* 1e-3 # s – measured from end to beginning of respective pulse (confirmed by Dr. Reynolds)
     TD = 5 # s
     TE = 10e-3 # s – guessed, but has negligible impact
 
-    # simulate signal with an MT model
-    # adiabatic inversion pulse
+    ## simulate signal with an MT model
+    ## adiabatic inversion pulse
     ω1, _, φ, TRF_inv = sech_inversion_pulse(TRF=10e-3, ω₁ᵐᵃˣ=13.5e-6 * 267.522e6, μ=1.8380981750265004, β=730)
     u_inv = RF_pulse_propagator(ω1, B1, φ, TRF_inv, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
-    # relaxation blocks
+    ## relaxation blocks
     u_ti = [exp(hamiltonian_linear(0, B1, ω0, iTI, m0s, R1f, R2f, Rx, R1s, 1)) for iTI ∈ TI]
     u_td = exp(hamiltonian_linear(0, B1, ω0, TD - TE, m0s, R1f, R2f, Rx, R1s, 1))
 
-    # excitation block
+    ## excitation block
     u_exc = RF_pulse_propagator(sinc_pulse(π / 2, TRF_exc; nLobes=nLobes), B1, ω0, TRF_exc, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
     u_te = exp(hamiltonian_linear(0, B1, ω0, TE - TRF_exc / 2, m0s, R1f, R2f, Rx, R1s, 1))
     u_exc = u_te * u_exc
@@ -867,41 +923,44 @@ function calculate_T1_IRReynolds_adiabatic(m0s, R1f, R2f, Rx, R1s, T2s)
         s[i] = steady_state(U)[1]
     end
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T1 (in s)
     model3(t, p) = p[1] .* (1 .- p[2] .* exp.(-p[3] * t)) # confirmed by Dr. Reynolds
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
 
+#-
 push!(T1_literature, 0.905) # s
-push!(T1_function, calculate_T1_IRReynolds_adiabatic)
+push!(T1_functions, calculate_T1_IRReynolds_adiabatic)
 push!(seq_name, "IR ad. Reynolds et al.")
 push!(seq_type, :IR)
+nothing #hide #md
 
 
-## #########################################################
-# IR w/ sinc inversion pulse: Reynolds et al. (https://doi.org/10.1002/nbm.4936)
-############################################################
+#src #########################################################
+# ## Sinc IR: Reynolds et al.
+# Inversion-recovery method with a sinc inversion pulse described by [Reynolds et al. (2023)](https://doi.org/10.1002/nbm.4936).
+#src #########################################################
 function calculate_T1_IRReynolds_sinc(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     TRF_exc = 1e-3 # s – guessed
     nLobes_exc = 3 # s – guessed
     TI = [5.5, 10.2, 35.8, 66.9, 125, 234, 598, 818, 1118, 1529, 3910, 5348] .* 1e-3 # s – measured from end to beginning of respective pulse (confirmed by Dr. Reynolds)
     TD = 5 # s
     TE = 10e-3 # s – guessed, but has negligible impact
 
-    # simulate signal with an MT model
-    # excitation block
+    ## simulate signal with an MT model
+    ## excitation block
     u_exc = RF_pulse_propagator(sinc_pulse(π / 2, TRF_exc; nLobes=nLobes_exc), B1, ω0, TRF_exc, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
     u_te = exp(hamiltonian_linear(0, B1, ω0, TE - TRF_exc / 2, m0s, R1f, R2f, Rx, R1s, 1))
     u_exc = u_te * u_exc
 
-    # sinc inversion pulse
+    ## sinc inversion pulse
     TRF_inv = 3e-3 # s
     nLobes_inv = 3
     u_inv = RF_pulse_propagator(sinc_pulse(π, TRF_inv; nLobes=nLobes_inv), B1, ω0, TRF_inv, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
-    # relaxation blocks
+    ## relaxation blocks
     u_ti = [exp(hamiltonian_linear(0, B1, ω0, iTI, m0s, R1f, R2f, Rx, R1s, 1)) for iTI ∈ TI]
     u_td = exp(hamiltonian_linear(0, B1, ω0, TD - TE, m0s, R1f, R2f, Rx, R1s, 1))
 
@@ -911,40 +970,43 @@ function calculate_T1_IRReynolds_sinc(m0s, R1f, R2f, Rx, R1s, T2s)
         s[i] = steady_state(U)[1]
     end
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T1 (in s)
     model3(t, p) = p[1] .* (1 .- p[2] .* exp.(-p[3] * t)) # confirmed by Rd. Reynolds
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
 
+#-
 push!(T1_literature, 0.861) # s
-push!(T1_function, calculate_T1_IRReynolds_sinc)
+push!(T1_functions, calculate_T1_IRReynolds_sinc)
 push!(seq_name, "IR sinc Reynolds et al.")
 push!(seq_type, :IR)
+nothing #hide #md
 
 
-## #########################################################
-# saturation recovery: Reynolds et al. (https://doi.org/10.1002/nbm.4936)
-############################################################
+#src #########################################################
+# ## SR: Reynolds et al.
+# Saturation recovery method described by [Reynolds et al. (2023)](https://doi.org/10.1002/nbm.4936).
+#src #########################################################
 function calculate_T1_SRReynolds(m0s, R1f, R2f, Rx, R1s, T2s)
-    # define sequence parameters
+    ## define sequence parameters
     TRF_exc = 1e-3 # s – guessed, but has negligible impact
     nLobes_exc = 5 # guessed, but has negligible impact
     TI = [5.5, 10.2, 35.8, 66.9, 125, 234, 598, 818, 1118, 1529, 3910, 5348] .* 1e-3 # s – measured from end to beginning of respective pulse (confirmed by Dr. Reynolds)
     TD = 5 # s
     TE = 10e-3 # s – guessed, but has negligible impact
 
-    # simulate signal with an MT model
-    # saturation pulse
+    ## simulate signal with an MT model
+    ## saturation pulse
     TRF_sat = 0.5 # s
     ω1 = 10 * 2π # rad/s
     u_sat = RF_pulse_propagator(ω1, B1, ω0, TRF_sat, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
-    # relaxation blocks
+    ## relaxation blocks
     u_ti = [exp(hamiltonian_linear(0, B1, ω0, iTI, m0s, R1f, R2f, Rx, R1s, 1)) for iTI ∈ TI]
     u_td = exp(hamiltonian_linear(0, B1, ω0, TD - TE, m0s, R1f, R2f, Rx, R1s, 1))
 
-    # excitation block
+    ## excitation block
     u_exc = RF_pulse_propagator(sinc_pulse(π / 2, TRF_exc; nLobes=nLobes_exc), B1, ω0, TRF_exc, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
     u_te = exp(hamiltonian_linear(0, B1, ω0, TE - TRF_exc / 2, m0s, R1f, R2f, Rx, R1s, 1))
     u_exc = u_te * u_exc
@@ -955,38 +1017,45 @@ function calculate_T1_SRReynolds(m0s, R1f, R2f, Rx, R1s, T2s)
         s[i] = steady_state(U)[1]
     end
 
-    # fit mono-expential model and return T1 (in s)
+    ## fit mono-expential model and return T1 (in s)
     model3(t, p) = p[1] .* (1 .- p[2] .* exp.(-p[3] * t)) # confirmed by Dr. Reynolds
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
 
+#-
 push!(T1_literature, 1.013) # s
-push!(T1_function, calculate_T1_SRReynolds)
+push!(T1_functions, calculate_T1_SRReynolds)
 push!(seq_name, "SR Reynolds et al.")
 push!(seq_type, :SR)
+nothing #hide #md
 
 
 
-
-
-## #########################################################
-# initialize plot and output of the fit
-############################################################
+#src #########################################################
+# # Global Fit
+# ## Initialize plot and output of the fit
+#src #########################################################
 p = plot([0.55, 1.15], [0.55, 1.15], xlabel="T1 simulated", ylabel="T1 measured", legend=:topleft, label=:none)
 marker_list = [(seq_type_i == :IR) ? (:circle) : ((seq_type_i == :LL) ? (:cross) : ((seq_type_i == :vFA) ? (:diamond) : ((seq_type_i == :SR) ? (:dtriangle) : (:x)))) for seq_type_i in seq_type]
 
 fit_name = String[]
 fitted_param = NTuple{6, Float64}[]
 T1_simulated = Array{Float64}[]
-ΔAIC = Float64[]
-ΔBIC = Float64[]
+ΔAIC_v = Float64[]
+ΔBIC_v = Float64[]
+nothing #hide #md
 
-## #########################################################
-# fit mono-exponential model w/ generalized Bloch model
-############################################################
-MT_model = Graham() # irrelevant for a mono-exponential model; choosing Graham's model for speed purposes
+#src #########################################################
+# ## Mono-exponential fit
+#src #########################################################
+
+# We simulate the mono-exponential model as an MT model with a vanishing semi-solid spin pool. In this case, the underlying MT model is irrelevant and we choose Graham's model for speed purposes:
+MT_model = Graham()
 push!(fit_name, "mono_exp")
+nothing #hide #md
+
+# The following parameters are hard-coded with the exception of `R1f`, which serves as an initialization for the global fit.
 m0s = 0
 R1f = 1 / 1.084  # 1/s
 R2f = 1 / 0.0769 # 1/s
@@ -995,52 +1064,69 @@ R1s = R1f        # 1/s
 T2s = 0
 ω0 = 0
 B1 = 1
+nothing #hide #md
 
+# We define a model for the global fit. It takes the global set of parameters `p` as an input and returns a vector of T₁ estimates that correspond to the T₁ mapping methods described by the vector `T1_functions`
 function model(iseq, p)
     R1f = p[1]
     T1 = similar(iseq, Float64)
     Threads.@threads for i in eachindex(iseq)
-        T1[i] = T1_function[iseq[i]](m0s, R1f, R2f, Rx, R1s, T2s)
+        T1[i] = T1_functions[iseq[i]](m0s, R1f, R2f, Rx, R1s, T2s)
     end
     return T1
 end
 
-println("")
-@info "perform fit with a mono-exponential model"
-fit_mono = curve_fit(model, 1:length(T1_literature), T1_literature, [R1f], x_tol=1e-3, show_trace=true)
+# Perform the fit and save the global set of parameters:
+fit_mono = curve_fit(model, 1:length(T1_literature), T1_literature, [R1f], x_tol=1e-3)
 push!(fitted_param, (m0s, fit_mono.param[1], R2f, Rx, R1s, T2s))
 push!(T1_simulated, model(1:length(T1_literature), fit_mono.param))
+nothing #hide #md
+
+# For this model, the global set of parameters is:
+m0s
+#-
+R1f_fitted = fit_mono.param[1]
+#-
+R2f
+#-
+Rx
+#-
+R1s
+#-
+T2s
+# where all but `R1f` are fixed. The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
 scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
+#md Main.HTMLPlot(p) #hide
 
-# calculate Akaike (AIC) and Bayesian (BIC) information criteria
+# ### Akaike (AIC) and Bayesian (BIC) information criteria
+# The information criteria depend on the number of measurements `n`, the number of parameters `k`, and the squared sum of the residuals `RSS`:
 n = length(T1_literature)
+#-
 k = length(fit_mono.param)
+#-
 RSS = norm(fit_mono.resid)^2
-AIC_0 = n * log(RSS / n) + 2k
-BIC_0 = n * log(RSS / n) + k * log(n)
-ΔAIC_i = n * log(RSS / n) + 2k - AIC_0 # = 0
-ΔBIC_i = n * log(RSS / n) + k * log(n) - BIC_0 # = 0
-push!(ΔAIC, ΔAIC_i)
-push!(ΔBIC, ΔBIC_i)
 
-# print results
-display(p)
-@info "fitted model parameters:"
-@info "    m0s = $(fitted_param[end][1]) (fixed)"
-@info "    T1f = $(1/fitted_param[end][2]) s"
-@info "    T1s = $(1/fitted_param[end][5]) s (fixed)"
-@info "    T2f = $(1e3/fitted_param[end][3]) ms (fixed)"
-@info "    T2s = $(1e6 * fitted_param[end][6]) μs (fixed)"
-@info "    Rx  = $(fitted_param[end][4]) s⁻¹ (fixed)"
-@info "ΔAIC = $(ΔAIC[end])"
-@info "ΔBIC = $(ΔBIC[end])"
+# As the AIC and BIC are only informative in the difference, between two models, we use the mono-exponential model as the reference:
+AIC_mono = n * log(RSS / n) + 2k
+#-
+BIC_mono = n * log(RSS / n) + k * log(n)
+# In this case, `ΔAIC` is per definition zero:
+ΔAIC = n * log(RSS / n) + 2k - AIC_mono
+# as is `ΔBIC`:
+ΔBIC = n * log(RSS / n) + k * log(n) - BIC_mono
+# Store the results:
+push!(ΔAIC_v, ΔAIC)
+push!(ΔBIC_v, ΔBIC)
+nothing #hide #md
 
-
-## #########################################################
-# fit unconstr. qMT model w/ Graham's model
-############################################################
+#src #########################################################
+# ## Unconstrained qMT fit with Graham's model
+#src #########################################################
 MT_model = Graham()
 push!(fit_name, "unconstr_Graham")
+nothing #hide #md
+
+# The following parameters are hard-coded with the exception of `m0s`, `R1f`, and `R1s`, which serve as an initialization for the global fit.
 m0s = 0.25
 R1f = 1 / 1.84   # 1/s
 R1s = 1 / 0.34   # 1/s
@@ -1049,49 +1135,67 @@ R2f = 1 / 0.0769 # 1/s
 T2s = 12.5e-6    # s
 ω0 = 0
 B1 = 1
+nothing #hide #md
 
+# We define a model for the global fit. It takes the global set of parameters `p` as an input and returns a vector of T₁ estimates that correspond to the T₁ mapping methods described by the vector `T1_functions`
 function model(iseq, p)
     m0s, R1f, R1s = p
     T1 = similar(iseq, Float64)
     Threads.@threads for i in eachindex(iseq)
-        T1[i] = T1_function[iseq[i]](m0s, R1f, R2f, Rx, R1s, T2s)
+        T1[i] = T1_functions[iseq[i]](m0s, R1f, R2f, Rx, R1s, T2s)
     end
     return T1
 end
 
-println("")
-@info "perform fit with Graham's MT model and without T1s constraint"
-fit_Graham = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f, R1s], x_tol=1e-3, show_trace=true)
+# Perform the fit and save the global set of parameters:
+fit_Graham = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f, R1s], x_tol=1e-3)
 push!(fitted_param, (fit_Graham.param[1], fit_Graham.param[2], R2f, Rx, fit_Graham.param[3], T2s))
 push!(T1_simulated, model(1:length(T1_literature), fit_Graham.param))
+nothing #hide #md
+
+# For this model, the global set of parameters is:
+m0s_fitted = fit_Graham.param[1]
+#-
+R1f_fitted = fit_Graham.param[2]
+#-
+R2f
+#-
+Rx
+#-
+R1s_fitted = fit_Graham.param[3]
+#-
+T2s
+# where all but `m0s`, `R1f`, and `R1s` are fixed. The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
 scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
+#md Main.HTMLPlot(p) #hide
 
-# calculate Akaike (AIC) and Bayesian (BIC) information criteria
+
+# ### Akaike (AIC) and Bayesian (BIC) information criteria
+# The information criteria depend on the number of measurements `n`, the number of parameters `k`, and the squared sum of the residuals `RSS`:
 n = length(T1_literature)
-k = length(fit_Graham.param)
-RSS = norm(fit_Graham.resid)^2
-ΔAIC_i = n * log(RSS / n) + 2k - AIC_0
-ΔBIC_i = n * log(RSS / n) + k * log(n) - BIC_0
-push!(ΔAIC, ΔAIC_i)
-push!(ΔBIC, ΔBIC_i)
+#-
+k = length(fit_mono.param)
+#-
+RSS = norm(fit_mono.resid)^2
 
-# print results
-display(p)
-@info "fitted model parameters:"
-@info "    m0s = $(fitted_param[end][1])"
-@info "    T1f = $(1/fitted_param[end][2]) s"
-@info "    T1s = $(1/fitted_param[end][5]) s"
-@info "    T2f = $(1e3/fitted_param[end][3]) ms (fixed)"
-@info "    T2s = $(1e6 * fitted_param[end][6]) μs (fixed)"
-@info "    Rx  = $(fitted_param[end][4]) s⁻¹ (fixed)"
-@info "ΔAIC = $(ΔAIC[end])"
-@info "ΔBIC = $(ΔBIC[end])"
+# With this information, we can calculate the AIC difference to the mono-exponential model:
+ΔAIC = n * log(RSS / n) + 2k - AIC_mono
+# and similarly for the BIC:
+ΔBIC = n * log(RSS / n) + k * log(n) - BIC_mono
+# Store the results:
+push!(ΔAIC_v, ΔAIC)
+push!(ΔBIC_v, ΔBIC)
+nothing #hide #md
 
-## #########################################################
-# fit constr. qMT model w/ generalized Bloch model
-############################################################
+
+#src #########################################################
+# ## Constrained qMT fit with the generalized Bloch model
+#src #########################################################
 MT_model = gBloch()
 push!(fit_name, "constr_gBloch")
+nothing #hide #md
+
+# The following parameters are hard-coded with the exception of `m0s`, and `R1f`, which serve as an initialization for the global fit.
 m0s = 0.139
 R1f = 1 / 1.084  # 1/s
 R2f = 1 / 0.0769 # 1/s
@@ -1100,51 +1204,68 @@ R1s = 1          # 1/s
 T2s = 12.5e-6    # s
 ω0 = 0
 B1 = 1
+nothing #hide #md
 
+# We define a model for the global fit. It takes the global set of parameters `p` as an input and returns a vector of T₁ estimates that correspond to the T₁ mapping methods described by the vector `T1_functions`
 function model(iseq, p)
     m0s, R1f = p
     R1s = R1f
     T1 = similar(iseq, Float64)
     Threads.@threads for i in eachindex(iseq)
-        T1[i] = T1_function[iseq[i]](m0s, R1f, R2f, Rx, R1s, T2s)
+        T1[i] = T1_functions[iseq[i]](m0s, R1f, R2f, Rx, R1s, T2s)
     end
     return T1
 end
 
-println("")
-@info "perform fit with the generalized Bloch MT model and the T1s = T1f constraint"
-fit_constr = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f], x_tol=1e-3, show_trace=true)
+# Perform the fit and save the global set of parameters:
+fit_constr = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f], x_tol=1e-3)
 push!(fitted_param, (fit_constr.param[1], fit_constr.param[2], R2f, Rx, fit_constr.param[2], T2s))
 push!(T1_simulated, model(1:length(T1_literature), fit_constr.param))
+nothing #hide #md
+
+# For this model, the global set of parameters is:
+m0s_fitted = fit_constr.param[1]
+#-
+R1f_fitted = fit_constr.param[2]
+#-
+R2f
+#-
+Rx
+#-
+R1s_fitted = fit_constr.param[2]
+#-
+T2s
+# where all but `m0s`, `R1f`, and are fixed (`R1s = R1f`). The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
 scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
+#md Main.HTMLPlot(p) #hide
 
-# calculate Akaike (AIC) and Bayesian (BIC) information criteria
+
+# ### Akaike (AIC) and Bayesian (BIC) information criteria
+# The information criteria depend on the number of measurements `n`, the number of parameters `k`, and the squared sum of the residuals `RSS`:
 n = length(T1_literature)
-k = length(fit_constr.param)
-RSS = norm(fit_constr.resid)^2
-ΔAIC_i = n * log(RSS / n) + 2k - AIC_0
-ΔBIC_i = n * log(RSS / n) + k * log(n) - BIC_0
-push!(ΔAIC, ΔAIC_i)
-push!(ΔBIC, ΔBIC_i)
+#-
+k = length(fit_mono.param)
+#-
+RSS = norm(fit_mono.resid)^2
 
-# print results
-display(p)
-@info "fitted model parameters:"
-@info "    m0s = $(fitted_param[end][1])"
-@info "    T1f = $(1/fitted_param[end][2]) s"
-@info "    T1s = $(1/fitted_param[end][5]) s (fixed to T1f)"
-@info "    T2f = $(1e3/fitted_param[end][3]) ms (fixed)"
-@info "    T2s = $(1e6 * fitted_param[end][6]) μs (fixed)"
-@info "    Rx  = $(fitted_param[end][4]) s⁻¹ (fixed)"
-@info "ΔAIC = $(ΔAIC[end])"
-@info "ΔBIC = $(ΔBIC[end])"
+# With this information, we can calculate the AIC difference to the mono-exponential model:
+ΔAIC = n * log(RSS / n) + 2k - AIC_mono
+# and similarly for the BIC:
+ΔBIC = n * log(RSS / n) + k * log(n) - BIC_mono
+# Store the results:
+push!(ΔAIC_v, ΔAIC)
+push!(ΔBIC_v, ΔBIC)
+nothing #hide #md
 
 
-## #########################################################
-# fit unconstr. qMT model w/ generalized Bloch model
-############################################################
+#src #########################################################
+# Unconstrained qMT fit with the generalized Bloch model
+#src #########################################################
 MT_model = gBloch()
 push!(fit_name, "unconstr_gBloch")
+nothing #hide #md
+
+# The following parameters are hard-coded with the exception of `m0s`, `R1f`, and `R1s`, which serve as an initialization for the global fit.
 m0s = 0.25
 R1f = 1 / 1.84   # 1/s
 R1s = 1 / 0.34   # 1/s
@@ -1153,136 +1274,163 @@ R2f = 1 / 0.0769 # 1/s
 T2s = 12.5e-6    # s
 ω0 = 0
 B1 = 1
+nothing #hide #md
 
+# We define a model for the global fit. It takes the global set of parameters `p` as an input and returns a vector of T₁ estimates that correspond to the T₁ mapping methods described by the vector `T1_functions`
 function model(iseq, p)
     m0s, R1f, R1s = p
     T1 = similar(iseq, Float64)
     Threads.@threads for i in eachindex(iseq)
-        T1[i] = T1_function[iseq[i]](m0s, R1f, R2f, Rx, R1s, T2s)
+        T1[i] = T1_functions[iseq[i]](m0s, R1f, R2f, Rx, R1s, T2s)
     end
     return T1
 end
 
-println("")
-@info "perform fit with the generalized Bloch MT model and without T1s constraint"
+# Perform the fit and save the global set of parameters:
 fit_uncon = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f, R1s], x_tol=1e-3, show_trace=true)
 push!(fitted_param, (fit_uncon.param[1], fit_uncon.param[2], R2f, Rx, fit_uncon.param[3], T2s))
 push!(T1_simulated, model(1:length(T1_literature), fit_uncon.param))
+nothing #hide #md
+
+# For this model, the global set of parameters is:
+m0s_fitted = fit_uncon.param[1]
+#-
+R1f_fitted = fit_uncon.param[2]
+#-
+R2f
+#-
+Rx
+#-
+R1s_fitted = fit_uncon.param[3]
+#-
+T2s
+# where all but `m0s`, `R1f`, and `R1s` are fixed. The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
 scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
+#md Main.HTMLPlot(p) #hide
 
-# calculate Akaike (AIC) and Bayesian (BIC) information criteria
+
+# ## Akaike (AIC) and Bayesian (BIC) information criteria
+# The information criteria depend on the number of measurements `n`, the number of parameters `k`, and the squared sum of the residuals `RSS`:
 n = length(T1_literature)
-k = length(fit_uncon.param)
-RSS = norm(fit_uncon.resid)^2
-ΔAIC_i = n * log(RSS / n) + 2k - AIC_0
-ΔBIC_i = n * log(RSS / n) + k * log(n) - BIC_0
-push!(ΔAIC, ΔAIC_i)
-push!(ΔBIC, ΔBIC_i)
+#-
+k = length(fit_mono.param)
+#-
+RSS = norm(fit_mono.resid)^2
 
-# print results
-display(p)
-@info "fitted model parameters:"
-@info "    m0s = $(fitted_param[end][1])"
-@info "    T1f = $(1/fitted_param[end][2]) s"
-@info "    T1s = $(1/fitted_param[end][5]) s"
-@info "    T2f = $(1e3/fitted_param[end][3]) ms (fixed)"
-@info "    T2s = $(1e6 * fitted_param[end][6]) μs (fixed)"
-@info "    Rx  = $(fitted_param[end][4]) s⁻¹ (fixed)"
-@info "ΔAIC = $(ΔAIC[end])"
-@info "ΔBIC = $(ΔBIC[end])"
+# With this information, we can calculate the AIC difference to the mono-exponential model:
+ΔAIC = n * log(RSS / n) + 2k - AIC_mono
+# and similarly for the BIC:
+ΔBIC = n * log(RSS / n) + k * log(n) - BIC_mono
+# Store the results:
+push!(ΔAIC_v, ΔAIC)
+push!(ΔBIC_v, ΔBIC)
+nothing #hide #md
 
 
 
 
-## #########################################################
-# data analysis
-############################################################
-using StatsBase
+#src #########################################################
+# ## Data analysis
+#src #########################################################
+# The span of T₁ estimates in the literature is
+extrema(T1_literature)
 
-println("")
-@info "span of T1_literature: " extrema(T1_literature)
-@info "coefficient of variation of T1_literature: " variation(T1_literature)
+# and the coefficient of variation is
+variation(T1_literature)
 
-println("")
-@info "The meadian absolute deivation wrt. the mean value is used here, as it is more robust to outliers compared to the mean absolute deviation or the standard deviation. Note, however, that the median absolute deviation of the mono-exponential fit is an outlier, artificially inflating the corresponding reduction."
-@info "Variability is reduced by " 1 - mad(fit_mono.resid;   center=mean(fit_mono.resid))    / mad(T1_literature; center=mean(T1_literature))
-@info "Variability is reduced by " 1 - mad(fit_Graham.resid; center=mean(fit_Graham.resid))  / mad(T1_literature; center=mean(T1_literature))
-@info "Variability is reduced by " 1 - mad(fit_constr.resid; center=mean(fit_constr.resid))  / mad(T1_literature; center=mean(T1_literature))
-@info "Variability is reduced by " 1 - mad(fit_uncon.resid;  center=mean(fit_uncon.resid))   / mad(T1_literature; center=mean(T1_literature))
+# ### Median absolute deviation
+# In the paper, the median absolute deviation wrt. the mean value is used, as it is more robust to outliers compared to the mean absolute deviation or the standard deviation. Note, however, that the median absolute deviation of the mono-exponential fit is dominated by an outlier, artificially inflating the corresponding reduction.
 
-println("")
-@info "Mean absolute deviation for comparison:"
-@info "Variability is reduced by " 1 - mean(abs.(fit_mono.resid   .- mean(fit_mono.resid)))   / mean(abs.(T1_literature .- mean(T1_literature)))
-@info "Variability is reduced by " 1 - mean(abs.(fit_Graham.resid .- mean(fit_Graham.resid))) / mean(abs.(T1_literature .- mean(T1_literature)))
-@info "Variability is reduced by " 1 - mean(abs.(fit_constr.resid .- mean(fit_constr.resid))) / mean(abs.(T1_literature .- mean(T1_literature)))
-@info "Variability is reduced by " 1 - mean(abs.(fit_uncon.resid  .- mean(fit_uncon.resid)))  / mean(abs.(T1_literature .- mean(T1_literature)))
+# A mono-exponential model explains the following fraction of the T₁ variablity in the literature:
+1 - mad(fit_mono.resid;   center=mean(fit_mono.resid))    / mad(T1_literature; center=mean(T1_literature))
+# Graham's spectral model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+1 - mad(fit_Graham.resid; center=mean(fit_Graham.resid))  / mad(T1_literature; center=mean(T1_literature))
+# The generalized Bloch model constrained by `R₁ˢ = R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+1 - mad(fit_constr.resid; center=mean(fit_constr.resid))  / mad(T1_literature; center=mean(T1_literature))
+# The generalized Bloch model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+1 - mad(fit_uncon.resid;  center=mean(fit_uncon.resid))   / mad(T1_literature; center=mean(T1_literature))
 
-println("")
-@info "Standard deviation for comparison:"
-@info "Variability is reduced by " 1 - std(fit_mono.resid)   / std(T1_literature)
-@info "Variability is reduced by " 1 - std(fit_Graham.resid) / std(T1_literature)
-@info "Variability is reduced by " 1 - std(fit_constr.resid) / std(T1_literature)
-@info "Variability is reduced by " 1 - std(fit_uncon.resid)  / std(T1_literature)
+# ### Mean absolute deviation
+# For comparison, the mean absolute deviation is analyzed:
+# A mono-exponential model explains the following fraction of the T₁ variablity in the literature:
+1 - mean(abs.(fit_mono.resid   .- mean(fit_mono.resid)))   / mean(abs.(T1_literature .- mean(T1_literature)))
+# Graham's spectral model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+1 - mean(abs.(fit_Graham.resid .- mean(fit_Graham.resid))) / mean(abs.(T1_literature .- mean(T1_literature)))
+# The generalized Bloch model constrained by `R₁ˢ = R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+1 - mean(abs.(fit_constr.resid .- mean(fit_constr.resid))) / mean(abs.(T1_literature .- mean(T1_literature)))
+# The generalized Bloch model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+1 - mean(abs.(fit_uncon.resid  .- mean(fit_uncon.resid)))  / mean(abs.(T1_literature .- mean(T1_literature)))
 
-
-## #########################################################
-# export data
-############################################################
-using Printf
-
-## T1 estimates
-io = open(expanduser("~/Documents/Paper/2023_T1variablity/Figures/T1.txt"), "w")
-write(io, "meas ")
-[write(io, "sim_$name_i ") for name_i in fit_name]
-write(io, "seq_marker ")
-write(io, "\n")
-
-for i_seq in eachindex(T1_literature)
-    write(io, @sprintf("%1.3f ", T1_literature[i_seq]))
-    [write(io, @sprintf("%1.3f ", T1_simulated[i_fit][i_seq])) for i_fit in eachindex(T1_simulated)]
-    write(io, @sprintf("%s ", string(seq_type[i_seq])[1]))
-    write(io, "\n")
-end
-close(io)
-
-## residuals (no longer used)
-io = open(expanduser("~/Documents/Paper/2023_T1variablity/Figures/residuals.txt"), "w")
-for i_seq in eachindex(fit_mono.resid)
-    write(io, "1 ")
-    write(io, @sprintf("%1.3f ", fit_mono.resid[i_seq]))
-    write(io, @sprintf("%1.3f ", fit_constr.resid[i_seq]))
-    write(io, @sprintf("%1.3f ", fit_uncon.resid[i_seq]))
-    write(io, @sprintf("%1.3f ", fit_Graham.resid[i_seq]))
-    write(io, "\n")
-end
-close(io)
-
-## AIC/BIC table
-println("")
-println("model & \$T_1^s\$ constraint & \$\\Delta\$AIC & \$\\Delta\$BIC \\\\")
-println("\\midrule")
-println("mono-exponential   & none            & 0           & 0           \\\\")
-i = findfirst(fit_name .== "unconstr_Graham")
-println(@sprintf("Graham's & none & %1.1f & %1.1f \\\\", ΔAIC[i], ΔBIC[i]))
-i = findfirst(fit_name .== "constr_gBloch")
-println(@sprintf("generalized Bloch & \$T_1^s = T_1^f\$ & %1.1f & %1.1f \\\\", ΔAIC[i], ΔBIC[i]))
-i = findfirst(fit_name .== "unconstr_gBloch")
-println(@sprintf("generalized Bloch & none & %1.1f & %1.1f \\\\", ΔAIC[i], ΔBIC[i]))
-println("\\bottomrule")
+# ### Standard deviation
+# For comparison, the standard deviation is analyzed:
+# A mono-exponential model explains the following fraction of the T₁ variablity in the literature:
+1 - std(fit_mono.resid)   / std(T1_literature)
+# Graham's spectral model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+1 - std(fit_Graham.resid) / std(T1_literature)
+# The generalized Bloch model constrained by `R₁ˢ = R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+1 - std(fit_constr.resid) / std(T1_literature)
+# The generalized Bloch model without constraints on `R₁ᶠ` explains the following fraction of the T₁ variablity in the literature:
+1 - std(fit_uncon.resid)  / std(T1_literature)
 
 
-## fitted MT parameter
-println("")
-println("MT model                & \\multicolumn{2}{c|}{Graham's} & \\multicolumn{4}{c}{generalized Bloch} \\\\")
-println("\\midrule")
-println("\$T_1^s\$ constraint     & \\multicolumn{2}{c|}{none}     & \\multicolumn{2}{c|}{\$T_1^s = T_1^f\$}  & \\multicolumn{2}{c}{none} \\\\")
-println("\\midrule")
-println("study                   & this                          & \\cite{Gelderen2016,Stanisz.2005}      & this                     & \\cite{Assländer.2024,Stanisz.2005} & this   & \\cite{Assländer.2024oxt} \\\\")
-println("\\midrule")
-println(@sprintf("\$m_0^s\$ & %1.2f & 0.27 & %1.2f & 0.14 & %1.2f & 0.21 \\\\", fitted_param[2][1], fitted_param[3][1], fitted_param[4][1]))
-println(@sprintf("\$T_1^f\$ (s) & %1.2f & 2.44 & %1.2f & 1.52 & %1.2f & 1.84 \\\\", 1/fitted_param[2][2], 1/fitted_param[3][2], 1/fitted_param[4][2]))
-println(@sprintf("\$T_1^s\$ (s) & %1.2f & 0.25 & \\g\$T_1^f\$ & & %1.2f & 0.34 \\\\", 1/fitted_param[2][5], 1/fitted_param[4][5]))
-println(@sprintf("\$T_2^f\$ (ms) & \\g%1.1f & 69 & \\g%1.1f & 70.1 & \\g%1.1f & 76.9 \\\\", 1e3/fitted_param[2][3], 1e3/fitted_param[3][3], 1e3/fitted_param[4][3]))
-println(@sprintf("\$T_2^s\$ (\$\\upmu\$s) & \\g%1.1f & 10.0 & \\g%1.1f & & \\g%1.1f & 12.5 \\\\", 1e6*fitted_param[2][6], 1e6*fitted_param[3][6], 1e6*fitted_param[4][6]))
-println(@sprintf("\$R_\\text{x}\$ (s\$^{-1}\$) & \\g%1.1f & 9.0 & \\g%1.1f & 23.0 & \\g%1.1f & 13.6 \\\\", fitted_param[2][4], fitted_param[3][4], fitted_param[4][4]))
-println("\\bottomrule")
+#src #########################################################
+#src export data
+#src #########################################################
+using Printf #src
+
+#src T1 estimates
+io = open(expanduser("~/Documents/Paper/2023_T1variablity/Figures/T1.txt"), "w") #src
+write(io, "meas ") #src
+[write(io, "sim_$name_i ") for name_i in fit_name] #src
+write(io, "seq_marker ") #src
+write(io, "\n") #src
+
+for i_seq in eachindex(T1_literature) #src
+    write(io, @sprintf("%1.3f ", T1_literature[i_seq])) #src
+    [write(io, @sprintf("%1.3f ", T1_simulated[i_fit][i_seq])) for i_fit in eachindex(T1_simulated)] #src
+    write(io, @sprintf("%s ", string(seq_type[i_seq])[1])) #src
+    write(io, "\n") #src
+end #src
+close(io) #src
+
+#src residuals (no longer used)
+io = open(expanduser("~/Documents/Paper/2023_T1variablity/Figures/residuals.txt"), "w") #src
+for i_seq in eachindex(fit_mono.resid) #src
+    write(io, "1 ") #src
+    write(io, @sprintf("%1.3f ", fit_mono.resid[i_seq])) #src
+    write(io, @sprintf("%1.3f ", fit_constr.resid[i_seq])) #src
+    write(io, @sprintf("%1.3f ", fit_uncon.resid[i_seq])) #src
+    write(io, @sprintf("%1.3f ", fit_Graham.resid[i_seq])) #src
+    write(io, "\n") #src
+end #src
+close(io) #src
+
+#src AIC/BIC table
+println("") #src
+println("model & \$T_1^s\$ constraint & \$\\Delta\$AIC & \$\\Delta\$BIC \\\\") #src
+println("\\midrule") #src
+println("mono-exponential   & none            & 0           & 0           \\\\") #src
+i = findfirst(fit_name .== "unconstr_Graham") #src
+println(@sprintf("Graham's & none & %1.1f & %1.1f \\\\", ΔAIC[i], ΔBIC[i])) #src
+i = findfirst(fit_name .== "constr_gBloch") #src
+println(@sprintf("generalized Bloch & \$T_1^s = T_1^f\$ & %1.1f & %1.1f \\\\", ΔAIC[i], ΔBIC[i])) #src
+i = findfirst(fit_name .== "unconstr_gBloch") #src
+println(@sprintf("generalized Bloch & none & %1.1f & %1.1f \\\\", ΔAIC[i], ΔBIC[i])) #src
+println("\\bottomrule") #src
+
+
+#src fitted MT parameter
+println("") #src
+println("MT model                & \\multicolumn{2}{c|}{Graham's} & \\multicolumn{4}{c}{generalized Bloch} \\\\") #src
+println("\\midrule") #src
+println("\$T_1^s\$ constraint     & \\multicolumn{2}{c|}{none}     & \\multicolumn{2}{c|}{\$T_1^s = T_1^f\$}  & \\multicolumn{2}{c}{none} \\\\") #src
+println("\\midrule") #src
+println("study                   & this                          & \\cite{Gelderen2016,Stanisz.2005}      & this                     & \\cite{Assländer.2024,Stanisz.2005} & this   & \\cite{Assländer.2024oxt} \\\\") #src
+println("\\midrule") #src
+println(@sprintf("\$m_0^s\$ & %1.2f & 0.27 & %1.2f & 0.14 & %1.2f & 0.21 \\\\", fitted_param[2][1], fitted_param[3][1], fitted_param[4][1])) #src
+println(@sprintf("\$T_1^f\$ (s) & %1.2f & 2.44 & %1.2f & 1.52 & %1.2f & 1.84 \\\\", 1/fitted_param[2][2], 1/fitted_param[3][2], 1/fitted_param[4][2])) #src
+println(@sprintf("\$T_1^s\$ (s) & %1.2f & 0.25 & \\g\$T_1^f\$ & & %1.2f & 0.34 \\\\", 1/fitted_param[2][5], 1/fitted_param[4][5])) #src
+println(@sprintf("\$T_2^f\$ (ms) & \\g%1.1f & 69 & \\g%1.1f & 70.1 & \\g%1.1f & 76.9 \\\\", 1e3/fitted_param[2][3], 1e3/fitted_param[3][3], 1e3/fitted_param[4][3])) #src
+println(@sprintf("\$T_2^s\$ (\$\\upmu\$s) & \\g%1.1f & 10.0 & \\g%1.1f & & \\g%1.1f & 12.5 \\\\", 1e6*fitted_param[2][6], 1e6*fitted_param[3][6], 1e6*fitted_param[4][6])) #src
+println(@sprintf("\$R_\\text{x}\$ (s\$^{-1}\$) & \\g%1.1f & 9.0 & \\g%1.1f & 23.0 & \\g%1.1f & 13.6 \\\\", fitted_param[2][4], fitted_param[3][4], fitted_param[4][4])) #src
+println("\\bottomrule") #src

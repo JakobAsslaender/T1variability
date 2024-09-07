@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Helper functions · T1variability</title><meta name="title" content="Helper functions · T1variability"/><meta property="og:title" content="Helper functions · T1variability"/><meta property="twitter:title" content="Helper functions · T1variability"/><meta name="description" content="Documentation for T1variability."/><meta property="og:description" content="Documentation for T1variability."/><meta property="twitter:description" content="Documentation for T1variability."/><meta property="og:url" content="https://JakobAsslaender.github.io/T1variability/build_literate/helper_functions/"/><meta property="twitter:url" content="https://JakobAsslaender.github.io/T1variability/build_literate/helper_functions/"/><link rel="canonical" href="https://JakobAsslaender.github.io/T1variability/build_literate/helper_functions/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">T1variability</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../Fit_qMT_to_literatureT1/">T₁ Mapping methods</a></li><li class="is-active"><a class="tocitem" href>Helper functions</a><ul class="internal"><li><a class="tocitem" href="#Load-packages"><span>Load packages</span></a></li><li><a class="tocitem" href="#Define-MT-models"><span>Define MT models</span></a></li><li><a class="tocitem" href="#Spoiler-propagator"><span>Spoiler propagator</span></a></li><li><a class="tocitem" href="#Steady-state"><span>Steady state</span></a></li><li><a class="tocitem" href="#Pre-calculate-the-linearization-of-the-generalized-Bloch-model"><span>Pre-calculate the linearization of the generalized Bloch model</span></a></li><li><a class="tocitem" href="#RF-pulse-propagators"><span>RF pulse propagators</span></a></li><li><a class="tocitem" href="#Helper-functions-for-Graham&#39;s-spectral-model"><span>Helper functions for Graham&#39;s spectral model</span></a></li><li><a class="tocitem" href="#RF-pulse-definitions"><span>RF pulse definitions</span></a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Helper functions</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Helper functions</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/JakobAsslaender/T1variability/blob/master/helper_functions.jl#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Helper-functions"><a class="docs-heading-anchor" href="#Helper-functions">Helper functions</a><a id="Helper-functions-1"></a><a class="docs-heading-anchor-permalink" href="#Helper-functions" title="Permalink"></a></h1><h2 id="Load-packages"><a class="docs-heading-anchor" href="#Load-packages">Load packages</a><a id="Load-packages-1"></a><a class="docs-heading-anchor-permalink" href="#Load-packages" title="Permalink"></a></h2><pre><code class="language-julia hljs">using MRIgeneralizedBloch
+using StaticArrays
+using Statistics
+using QuadGK
+using DifferentialEquations
+using SpecialFunctions
+using LinearAlgebra
+using DataFrames
+using GLM
+using StatsBase
+using LsqFit
+using ApproxFun
+using Plots
+plotlyjs(bg=RGBA(31 / 255, 36 / 255, 36 / 255, 1.0), ticks=:native, size=(600, 600))
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><h2 id="Define-MT-models"><a class="docs-heading-anchor" href="#Define-MT-models">Define MT models</a><a id="Define-MT-models-1"></a><a class="docs-heading-anchor-permalink" href="#Define-MT-models" title="Permalink"></a></h2><p>These structs are used to identify the MT model with Julia&#39;s multiple dispatch mechanism</p><pre><code class="language-julia hljs">struct gBloch end
+struct Graham end
+struct Sled end
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><h2 id="Spoiler-propagator"><a class="docs-heading-anchor" href="#Spoiler-propagator">Spoiler propagator</a><a id="Spoiler-propagator-1"></a><a class="docs-heading-anchor-permalink" href="#Spoiler-propagator" title="Permalink"></a></h2><p>This matrix implements &quot;perfect&quot; RF spoiling that destroys all transversal magnetization.</p><pre><code class="language-julia hljs">u_sp = @SMatrix [
+    0 0 0 0 0 0
+    0 0 0 0 0 0
+    0 0 1 0 0 0
+    0 0 0 0 0 0
+    0 0 0 0 1 0
+    0 0 0 0 0 1]
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><h2 id="Steady-state"><a class="docs-heading-anchor" href="#Steady-state">Steady state</a><a id="Steady-state-1"></a><a class="docs-heading-anchor-permalink" href="#Steady-state" title="Permalink"></a></h2><p>The input <code>U</code> of this function is a propagator that describes the spin evolution during an RF pulse sequence. It uses linear algebra to calculate the steady state magnetization <code>m</code> resulting from repeated execution of the pulse sequence described by <code>U</code>.</p><pre><code class="language-julia hljs">function steady_state(U)
+    U0 = @SMatrix [
+        1 0 0 0 0 0;
+        0 1 0 0 0 0;
+        0 0 1 0 0 0;
+        0 0 0 1 0 0;
+        0 0 0 0 1 0;
+        0 0 0 0 0 0]
+    Q = U - U0
+    m = Q \ @SVector [0,0,0,0,0,1]
+    return m
+end
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><h2 id="Pre-calculate-the-linearization-of-the-generalized-Bloch-model"><a class="docs-heading-anchor" href="#Pre-calculate-the-linearization-of-the-generalized-Bloch-model">Pre-calculate the linearization of the generalized Bloch model</a><a id="Pre-calculate-the-linearization-of-the-generalized-Bloch-model-1"></a><a class="docs-heading-anchor-permalink" href="#Pre-calculate-the-linearization-of-the-generalized-Bloch-model" title="Permalink"></a></h2><p>Refer to the <a href="https://jakobasslaender.github.io/MRIgeneralizedBloch.jl/stable/build_literate/Linear_Approximation/">documentation of the generalized Bloch package</a> for details.</p><pre><code class="language-julia hljs">const G = interpolate_greens_function(greens_superlorentzian, 0, 1000)
+R2sl = precompute_R2sl(TRF_max=5e-3, ω1_max=π / 500e-6)[1]
+R2sl_short = precompute_R2sl(TRF_min=10e-6, TRF_max=20e-6, ω1_max=π / 10e-6)[1]
+noth
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><h2 id="RF-pulse-propagators"><a class="docs-heading-anchor" href="#RF-pulse-propagators">RF pulse propagators</a><a id="RF-pulse-propagators-1"></a><a class="docs-heading-anchor-permalink" href="#RF-pulse-propagators" title="Permalink"></a></h2><pre><code class="language-julia hljs">function RF_pulse_propagator(ω1::Number, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::gBloch; spoiler=true)
+    if TRF &gt;= 10e-6 &amp;&amp; TRF &lt;= 20e-6
+        R2s = R2sl_short(TRF, abs(ω1 * TRF), B1, T2s)
+        U = exp(hamiltonian_linear(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, R2s))
+        U = spoiler ? U * u_sp : U
+    elseif TRF &gt;= 100e-6 &amp;&amp; TRF &lt;= 5e-3
+        R2s = R2sl(TRF, abs(ω1 * TRF), B1, T2s)
+        U = exp(hamiltonian_linear(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, R2s))
+        U = spoiler ? U * u_sp : U
+    else
+        U = RF_pulse_propagator(_ -&gt; ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model; spoiler=spoiler)
+    end
+    return U
+end
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><pre><code class="language-julia hljs">function RF_pulse_propagator(ω1::Function, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::gBloch; spoiler=true)
+    U = zeros(6, 6)
+    Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
+
+    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only the z magnetization is non-zero
+    Threads.@threads for i ∈ i_in
+        m0 = zeros(5)
+        m0[i] = 1
+        mfun(p, t; idxs=nothing) = typeof(idxs) &lt;: Number ? m0[idxs] : m0
+        Ui[1:5, i] = solve(DDEProblem(apply_hamiltonian_gbloch!, m0, mfun, (0, TRF), (ω1, B1, ω0, m0s, R1f, R2f, Rx, R1s, T2s, G)), reltol=1e-6, MethodOfSteps(RK4()))[end]
+    end
+    return U
+end
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><pre><code class="language-julia hljs">function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Sled; spoiler=true)
+    m0 = zeros(5)
+    U = zeros(6, 6)
+    Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
+
+    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only the z magnetization is non-zero
+    for i ∈ i_in
+        m0 .= 0
+        m0[i] = 1
+        mfun(p, t; idxs=nothing) = typeof(idxs) &lt;: Number ? m0[idxs] : m0
+        Ui[1:5, i] = solve(ODEProblem(apply_hamiltonian_sled!, m0, (0, TRF), (ω1, B1, ω0, m0s, R1f, R2f, Rx, R1s, T2s, G)), reltol=1e-6)[end]
+    end
+    return U
+end
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><pre><code class="language-julia hljs">function RF_pulse_propagator(ω1::Real, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Graham; spoiler=true)
+    m0 = zeros(5)
+    U = zeros(6, 6)
+    Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
+
+    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only the z magnetization is non-zero
+    for i ∈ i_in
+        m0 .= 0
+        m0[i] = 1
+        mfun(p, t; idxs=nothing) = typeof(idxs) &lt;: Number ? m0[idxs] : m0
+        Ui[1:5, i] = solve(ODEProblem(apply_hamiltonian_graham_superlorentzian!, m0, (0, TRF), (ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s)), reltol=1e-6)[end]
+    end
+    return U
+end
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><pre><code class="language-julia hljs">function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Graham; spoiler=true)
+    Rrf = graham_saturation_rate_spectral_fast(ω1, B1, ω0, TRF, T2s)
+
+    m0 = zeros(5)
+    U = zeros(6, 6)
+    Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
+
+    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only the z magnetization is non-zero
+    for i ∈ i_in
+        m0 .= 0
+        m0[i] = 1
+        mfun(p, t; idxs=nothing) = typeof(idxs) &lt;: Number ? m0[idxs] : m0
+        Ui[1:5, i] = solve(ODEProblem(apply_hamiltonian_linear!, m0, (0, TRF), (ω1, B1, ω0, m0s, R1f, R2f, Rx, R1s, Rrf)), reltol=1e-6)[end]
+    end
+    return U
+end
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><h2 id="Helper-functions-for-Graham&#39;s-spectral-model"><a class="docs-heading-anchor" href="#Helper-functions-for-Graham&#39;s-spectral-model">Helper functions for Graham&#39;s spectral model</a><a id="Helper-functions-for-Graham&#39;s-spectral-model-1"></a><a class="docs-heading-anchor-permalink" href="#Helper-functions-for-Graham&#39;s-spectral-model" title="Permalink"></a></h2><p>The following code saves and reuses the saturation rate <code>Rrf</code> of an RF pulse to speed up the simulation.</p><pre><code class="language-julia hljs">struct Rrf_Atom
+    ω1_sqrtTRF::Float64
+    ω1_TRFo2::Float64
+    ω1_TRFmsqrtTRF::Float64
+    B1::Float64
+    ω0::Float64
+    TRF::Float64
+    T2s::Float64
+    Rrf::Float64
+end
+Rrf_Dict = Rrf_Atom[]
+function graham_saturation_rate_spectral_fast(ω1, B1, ω0, TRF, T2s)
+    T2s == 0 &amp;&amp; return 1 # for mono-exponential model
+
+    d_ω0 = typeof(ω0) &lt;: Function ? ω0(sqrt(TRF)) : ω0 # just used for comparison
+
+    for x ∈ Rrf_Dict
+        if ω1(sqrt(TRF)) == x.ω1_sqrtTRF &amp;&amp; ω1(TRF/2) == x.ω1_TRFo2 &amp;&amp; ω1(TRF-sqrt(TRF)) == x.ω1_TRFmsqrtTRF &amp;&amp; B1 == x.B1 &amp;&amp; d_ω0 == x.ω0 &amp;&amp; TRF == x.TRF &amp;&amp; T2s == x.T2s
+            return x.Rrf
+        end
+    end
+
+    Rrf = graham_saturation_rate_spectral(ω0_int -&gt; lineshape_superlorentzian(ω0_int, T2s), t -&gt; ω1(t)*B1, TRF, ω0)
+    push!(Rrf_Dict, Rrf_Atom(ω1(sqrt(TRF)), ω1(TRF/2), ω1(TRF-sqrt(TRF)), B1, d_ω0, TRF, T2s, Rrf))
+    return Rrf
+end
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><h2 id="RF-pulse-definitions"><a class="docs-heading-anchor" href="#RF-pulse-definitions">RF pulse definitions</a><a id="RF-pulse-definitions-1"></a><a class="docs-heading-anchor-permalink" href="#RF-pulse-definitions" title="Permalink"></a></h2><pre><code class="language-julia hljs">function sinc_pulse(α, TRF; nLobes=3)
+    nLobes % 2 != 1 ? error() : nothing
+    x = (nLobes - 1) / 2 + 1
+    ω1(t) = sinc((2t / TRF - 1) * x) * α * x * π / (sinint(x * π) * TRF)
+end
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><pre><code class="language-julia hljs">function hanning_pulse(α, TRF)
+    ω1(t) = α * cos(π * t / TRF - π / 2)^2 * 2 / TRF
+end
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><pre><code class="language-julia hljs">function gauss_pulse(α, TRF; shape_alpha=2.5)
+    y(t) = exp(-((2 * t / TRF - 1) * shape_alpha)^2 / 2)
+    ω1(t) = α * (y(t) - y(0)) / (sqrt(π/2) * TRF * erf(shape_alpha/sqrt(2)) / shape_alpha - y(0)*TRF)
+end
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><pre><code class="language-julia hljs">function CSMT_pulse(α, TRF, TR, ω1rms; ω0=12000π)
+    ω1_0 = gauss_pulse(α, TRF; shape_alpha=2.5) # shape &amp; shape_alpha confirmed by Dr. Teixeira
+    ω1ms_0 = quadgk(t -&gt; ω1_0(t)^2, 0, TRF)[1] / TR
+
+    β = ω1rms^2 / ω1ms_0 - 1
+    if β &lt; 0
+        β = 0
+        @error &quot;negative Δω1ms with α = $(α*180/pi)deg; on-resonant pulse has ω1rms = $(sqrt(ω1ms_0)). Setting it to zero.&quot;
+    end
+
+    wt(t) = 1 - sqrt(2 * β) * cos(ω0 * t)
+    ω1(t) = ω1_0(t) * wt(t)
+    return ω1
+end
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><pre><code class="language-julia hljs">function sech_inversion_pulse(; TRF=10.24e-3, ω₁ᵐᵃˣ=4965.910769033364, μ=5, β=674.1)
+    ω1(t) = ω₁ᵐᵃˣ * sech(β * (t - TRF / 2)) # rad/s
+    ω0(t) = -μ * β * tanh(β * (t - TRF/2)) # rad/s
+    φ_u(t) = μ * log(cosh(β * t) - sinh(β * t) * tanh(β * TRF / 2)) # rad
+    φ(t) = φ_u(t) - φ_u(TRF/2)
+    return (ω1, ω0, φ, TRF)
+end
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre><p><code>Sechn</code> pulse shape according to <a href="http://doi.org/10.1006/jmre.2001.2340">this paper</a>, confirmed by Dr. O&#39;Brien:</p><pre><code class="language-julia hljs">function sechn_inversion_pulse(; TRF=10.24e-3, ω₁ᵐᵃˣ=10e-6 * 267.522e6, β=240, μ=35, n = 8)
+    f1(τ) = sech((β * τ)^n)
+    ω1(t) = ω₁ᵐᵃˣ * f1(t - TRF / 2) # rad/s
+
+    ω0_i(t) = μ * β^2 * quadgk((τ) -&gt; f1(τ)^2, 0, t - TRF/2)[1]
+    ω0 = Fun(ω0_i, 0..TRF)
+    φ_ = cumsum(ω0)
+    φ(t) = φ_(t) - φ_(TRF/2)
+    return (ω1, ω0, φ, TRF)
+end
+nothing #hide</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Fit_qMT_to_literatureT1/">« T₁ Mapping methods</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Saturday 7 September 2024 23:42">Saturday 7 September 2024</span>. Using Julia version 1.10.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

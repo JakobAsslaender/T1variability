@@ -6,6 +6,7 @@ incl_fit = Bool[]
 seq_name = String[]
 seq_type = Symbol[]
 using GLM #hide
+using StaticArrays #hide
 
 # Next, we define the simulations of each pulse sequence as a function and push this function and auxiliary information to the respective vector.
 

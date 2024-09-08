@@ -57,15 +57,15 @@ nothing #hide #md
 # For this model, the global set of parameters is:
 m0s
 #-
-R1f_fitted = fit_mono.param[1]
+T1f_fitted = 1/fit_mono.param[1] # s
 #-
-R2f
+1/R1s # s
 #-
-Rx
+1/R2f # s
 #-
-R1s
+T2s # s
 #-
-T2s
+Rx # 1/s
 # where all but `R1f` are fixed. The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
 scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
@@ -128,15 +128,15 @@ nothing #hide #md
 # For this model, the global set of parameters is:
 m0s_fitted = fit_Graham.param[1]
 #-
-R1f_fitted = fit_Graham.param[2]
+T1f_fitted = 1/fit_Graham.param[2] # s
 #-
-R2f
+T1s_fitted = 1/fit_Graham.param[3] # s
 #-
-Rx
+1/R2f # s
 #-
-R1s_fitted = fit_Graham.param[3]
+T2s # s
 #-
-T2s
+Rx # 1/s
 # where all but `m0s`, `R1f`, and `R1s` are fixed. The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
 scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
@@ -146,9 +146,9 @@ scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", ma
 # The information criteria depend on the number of measurements `n`, the number of parameters `k`, and the squared sum of the residuals `RSS`:
 n = length(T1_literature)
 #-
-k = length(fit_mono.param)
+k = length(fit_Graham.param)
 #-
-RSS = norm(fit_mono.resid)^2
+RSS = norm(fit_Graham.resid)^2
 
 # With this information, we can calculate the AIC difference to the mono-exponential model:
 ΔAIC = n * log(RSS / n) + 2k - AIC_mono
@@ -198,15 +198,15 @@ nothing #hide #md
 # For this model, the global set of parameters is:
 m0s_fitted = fit_constr.param[1]
 #-
-R1f_fitted = fit_constr.param[2]
+T1f_fitted = 1/fit_constr.param[2] # s
 #-
-R2f
+T1s_fitted = 1/fit_constr.param[2] # s
 #-
-Rx
+1/R2f # s
 #-
-R1s_fitted = fit_constr.param[2]
+T2s # s
 #-
-T2s
+Rx # 1/s
 # where all but `m0s`, `R1f`, and are fixed (`R1s = R1f`). The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
 scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
@@ -216,9 +216,9 @@ scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", ma
 # The information criteria depend on the number of measurements `n`, the number of parameters `k`, and the squared sum of the residuals `RSS`:
 n = length(T1_literature)
 #-
-k = length(fit_mono.param)
+k = length(fit_constr.param)
 #-
-RSS = norm(fit_mono.resid)^2
+RSS = norm(fit_constr.resid)^2
 
 # With this information, we can calculate the AIC difference to the mono-exponential model:
 ΔAIC = n * log(RSS / n) + 2k - AIC_mono
@@ -267,15 +267,15 @@ nothing #hide #md
 # For this model, the global set of parameters is:
 m0s_fitted = fit_uncon.param[1]
 #-
-R1f_fitted = fit_uncon.param[2]
+T1f_fitted = 1/fit_uncon.param[2] # s
 #-
-R2f
+T1s_fitted = 1/fit_uncon.param[3] # s
 #-
-Rx
+1/R2f # s
 #-
-R1s_fitted = fit_uncon.param[3]
+T2s # s
 #-
-T2s
+Rx # 1/s
 # where all but `m0s`, `R1f`, and `R1s` are fixed. The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
 scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
@@ -285,9 +285,9 @@ scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", ma
 # The information criteria depend on the number of measurements `n`, the number of parameters `k`, and the squared sum of the residuals `RSS`:
 n = length(T1_literature)
 #-
-k = length(fit_mono.param)
+k = length(fit_uncon.param)
 #-
-RSS = norm(fit_mono.resid)^2
+RSS = norm(fit_uncon.resid)^2
 
 # With this information, we can calculate the AIC difference to the mono-exponential model:
 ΔAIC = n * log(RSS / n) + 2k - AIC_mono

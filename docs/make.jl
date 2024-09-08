@@ -49,7 +49,7 @@ end
 
 makedocs(;
     clean = true,
-    draft = true,
+    draft = false,
     doctest = false,
     authors="Jakob Asslaender <jakob.asslaender@nyumc.org> and contributors",
     sitename="T1variability",

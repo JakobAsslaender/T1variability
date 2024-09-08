@@ -2,7 +2,7 @@
 |:------------------------- |:------------------------------|
 | [![][docs-img]][docs-url] | [![][arXiv-img1]][arXiv-url1] |
 
-This code reproduces all results in the paper [Magnetization transfer explains most of the T1 variability in the MRI literature][arXiv-url1]. Please go to the [Documentation][docs-url] for a detailed description of the code. 
+This code reproduces all results in the paper [Magnetization transfer explains most of the T1 variability in the MRI literature][arXiv-url1]. Please go to the [Documentation][docs-url] for a detailed description of the code.
 
 The code is written in the open-source language Julia and is structured as follows:
 - Fit_qMT_to_literatureT1.jl is the main script and implements the pulse sequence simulations and the mono-exponential fitting routines. It also calls the fit of the qMT models to the variable literature T1 estimates.
@@ -25,5 +25,5 @@ replacing `some_path` with the path to the files. For a more interactive interfa
 [docs-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docs-url]: https://jakobasslaender.github.io/T1variability/dev/
 
-[arXiv-img1]: https://img.shields.io/badge/arXiv-XXX-blue.svg
-[arXiv-url1]: https://arxiv.org/pdf/XXX.pdf
+[arXiv-img1]: https://img.shields.io/badge/arXiv-TODO-blue.svg
+[arXiv-url1]: https://arxiv.org/pdf/TODO.pdf

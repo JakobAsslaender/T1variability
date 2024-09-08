@@ -35,6 +35,7 @@ end
 OUTPUT = joinpath(@__DIR__, "src/build_literate")
 
 files = [
+    "T1_mapping_methods.jl",
     "Fit_qMT_to_literatureT1.jl",
     "helper_functions.jl",
 ]
@@ -51,15 +52,16 @@ makedocs(;
     draft = true,
     doctest = false,
     authors="Jakob Asslaender <jakob.asslaender@nyumc.org> and contributors",
-    repo="https://github.com/JakobAsslaender/T1variability/blob/{commit}{path}#{line}",
     sitename="T1variability",
     format=Documenter.HTML(;
+        inventory_version=0.1, # TODO
         prettyurls=get(ENV, "CI", "false") == "true",
         canonical="https://JakobAsslaender.github.io/T1variability",
         assets=String[],
     ),
     pages=[
         "Home" => "index.md",
+        "build_literate/T1_mapping_methods.md",
         "build_literate/Fit_qMT_to_literatureT1.md",
         "build_literate/helper_functions.md",
     ],

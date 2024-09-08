@@ -3,7 +3,7 @@
 include("helper_functions.jl")
 nothing #hide #md
 
-# and load all T₁ mapping methods:
+# and load all [T₁-mapping methods](@ref):
 include("T1_mapping_methods.jl")
 nothing #hide #md
 

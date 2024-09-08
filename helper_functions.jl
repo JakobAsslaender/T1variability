@@ -35,7 +35,7 @@ nothing #hide #md
 
 
 # ## Steady state
-# The input `U` of this function is a propagator that describes the spin evolution during an RF pulse sequence. It uses linear algebra to calculate the steady state magnetization `m` resulting from repeated execution of the pulse sequence described by `U`.
+# The input `U` of this function is a matrix that describes the spin evolution during an RF pulse sequence. The function uses linear algebra to calculate the steady state magnetization `m` resulting from repeated execution of the pulse sequence described by `U`.
 function steady_state(U)
     U0 = @SMatrix [
         1 0 0 0 0 0;
@@ -50,15 +50,16 @@ function steady_state(U)
 end
 nothing #hide #md
 
-# ## Pre-calculate the linearization of the generalized Bloch model
-# Refer to the [documentation of the generalized Bloch package](https://jakobasslaender.github.io/MRIgeneralizedBloch.jl/stable/build_literate/Linear_Approximation/) for details.
+# ## RF pulse propagators
+# ### Generalized Bloch model
+# First, we pre-calculate the linearization of the generalized Bloch model. Refer to the [documentation of the generalized Bloch package](https://jakobasslaender.github.io/MRIgeneralizedBloch.jl/stable/build_literate/Linear_Approximation/) for details.
 const G = interpolate_greens_function(greens_superlorentzian, 0, 1000)
 const R2sl_1 = precompute_R2sl(TRF_min=1e-6, TRF_max=3e-6, ω1_max=π / 500e-6, T2s_min=12e-6, T2s_max=13e-6, B1_max=1.1)[1]
 const R2sl_2 = precompute_R2sl(TRF_min=10e-6, TRF_max=20e-6, ω1_max=π / 10e-6, T2s_min=12e-6, T2s_max=13e-6, B1_max=1.1)[1]
 const R2sl_3 = precompute_R2sl(TRF_max=1e-3, ω1_max=π / 500e-6, T2s_min=12e-6, T2s_max=13e-6, B1_max=1.1)[1]
 nothing #hide #md
 
-# ## RF pulse propagators
+# We implemented different methods for the function `RF_pulse_propagator` that infered with Julia's multiple dispatch logic based on the type of the input parameters. The functions in this section take the variable `model` of type `gBloch` and implement the generalized Bloch model. The first method further takes the variable `ω1` of the abstract type `Number`, i.e., it implements pulse propagators for a constant ω₁.
 function RF_pulse_propagator(ω1::Number, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::gBloch; spoiler=true)
     if TRF >= 1e-6 && TRF <= 3e-6
         R2s = R2sl_1(TRF, abs(ω1 * TRF), B1, T2s)
@@ -79,7 +80,7 @@ function RF_pulse_propagator(ω1::Number, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, 
 end
 nothing #hide #md
 
-#-
+# The following method takes the variable `ω1` of type `Function`, i.e., it implements pulse propagators with a variable ω₁ that is implemented as the function `ω1(t)`:
 function RF_pulse_propagator(ω1::Function, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::gBloch; spoiler=true)
     U = zeros(6, 6)
     Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
@@ -95,8 +96,8 @@ function RF_pulse_propagator(ω1::Function, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s
 end
 nothing #hide #md
 
-#-
-function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Sled; spoiler=true)
+# ### Graham's model
+function RF_pulse_propagator(ω1::Number, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Graham; spoiler=true)
     m0 = zeros(5)
     U = zeros(6, 6)
     Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
@@ -105,32 +106,14 @@ function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, mod
     for i ∈ i_in
         m0 .= 0
         m0[i] = 1
-        mfun(p, t; idxs=nothing) = typeof(idxs) <: Number ? m0[idxs] : m0
-        Ui[1:5, i] = solve(ODEProblem(apply_hamiltonian_sled!, m0, (0, TRF), (ω1, B1, ω0, m0s, R1f, R2f, Rx, R1s, T2s, G)), reltol=1e-6)[end]
+        Ui[1:5, i] = solve(ODEProblem(apply_hamiltonian_graham_superlorentzian!, m0, (0, TRF), (ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s)), Vern9(), reltol=1e-6)[end]
     end
     return U
 end
 nothing #hide #md
 
 #-
-function RF_pulse_propagator(ω1::Real, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Graham; spoiler=true)
-    m0 = zeros(5)
-    U = zeros(6, 6)
-    Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
-
-    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only the z magnetization is non-zero
-    for i ∈ i_in
-        m0 .= 0
-        m0[i] = 1
-        mfun(p, t; idxs=nothing) = typeof(idxs) <: Number ? m0[idxs] : m0
-        Ui[1:5, i] = solve(ODEProblem(apply_hamiltonian_graham_superlorentzian!, m0, (0, TRF), (ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s)), reltol=1e-6)[end]
-    end
-    return U
-end
-nothing #hide #md
-
-#-
-function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Graham; spoiler=true)
+function RF_pulse_propagator(ω1::Function, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Graham; spoiler=true)
     Rrf = graham_saturation_rate_spectral_fast(ω1, B1, ω0, TRF, T2s)
 
     m0 = zeros(5)
@@ -141,8 +124,24 @@ function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, mod
     for i ∈ i_in
         m0 .= 0
         m0[i] = 1
+        Ui[1:5, i] = solve(ODEProblem(apply_hamiltonian_linear!, m0, (0, TRF), (ω1, B1, ω0, m0s, R1f, R2f, Rx, R1s, Rrf)), Vern9(), reltol=1e-6)[end]
+    end
+    return U
+end
+nothing #hide #md
+
+# ### Sled's model
+function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Sled; spoiler=true)
+    m0 = zeros(5)
+    U = zeros(6, 6)
+    Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
+
+    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only the z magnetization is non-zero
+    for i ∈ i_in
+        m0 .= 0
+        m0[i] = 1
         mfun(p, t; idxs=nothing) = typeof(idxs) <: Number ? m0[idxs] : m0
-        Ui[1:5, i] = solve(ODEProblem(apply_hamiltonian_linear!, m0, (0, TRF), (ω1, B1, ω0, m0s, R1f, R2f, Rx, R1s, Rrf)), reltol=1e-6)[end]
+        Ui[1:5, i] = solve(ODEProblem(apply_hamiltonian_sled!, m0, (0, TRF), (ω1, B1, ω0, m0s, R1f, R2f, Rx, R1s, T2s, G)), Vern9(), reltol=1e-6)[end]
     end
     return U
 end
@@ -199,7 +198,7 @@ function gauss_pulse(α, TRF; shape_alpha=2.5)
 end
 nothing #hide #md
 
-#-
+# Controlled saturation MT pulse as described by [Teixeira et al. (2019)](http://doi.org/10.1002/mrm.27442):
 function CSMT_pulse(α, TRF, TR, ω1rms; ω0=12000π)
     ω1_0 = gauss_pulse(α, TRF; shape_alpha=2.5) # shape & shape_alpha confirmed by Dr. Teixeira
     ω1ms_0 = quadgk(t -> ω1_0(t)^2, 0, TRF)[1] / TR

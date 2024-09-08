@@ -8,7 +8,7 @@ seq_type = Symbol[]
 using GLM #hide
 using StaticArrays #hide
 
-# Next, we define the simulations of each pulse sequence as a function and push this function and auxiliary information to the respective vector.
+# Next, we define the simulations of each pulse sequence as a function and push this function and auxiliary information for plotting to the respective vector.
 
 #src #########################################################
 # ## IR: Stanisz et al.

@@ -52,7 +52,7 @@ makedocs(;
     draft = false,
     doctest = false,
     authors="Jakob Asslaender <jakob.asslaender@nyumc.org> and contributors",
-    sitename="T1variability",
+    sitename="T₁ variability",
     format=Documenter.HTML(;
         inventory_version=0.1, # TODO
         prettyurls=get(ENV, "CI", "false") == "true",

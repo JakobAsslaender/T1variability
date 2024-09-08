@@ -8,7 +8,6 @@ using DifferentialEquations
 using SpecialFunctions
 using LinearAlgebra
 using DataFrames
-using GLM
 using StatsBase
 using LsqFit
 using ApproxFun

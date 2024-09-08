@@ -1,11 +1,11 @@
-# # T₁ mapping methods
-# First, we initialize a few empty vectors which will be filled with information about each T₁ mapping method:
+# # T₁-mapping methods
+# First, we initialize a few empty vectors which will be filled with information about each T₁-mapping method:
 T1_literature = Float64[]
 T1_functions = []
 incl_fit = Bool[]
 seq_name = String[]
 seq_type = Symbol[]
-nothing #hide #md
+using GLM #hide
 
 # Next, we define the simulations of each pulse sequence as a function and push this function and auxiliary information to the respective vector.
 
@@ -39,6 +39,7 @@ function calculate_T1_IRStanisz(m0s, R1f, R2f, Rx, R1s, T2s)
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
+nothing #hide #md
 
 # We add the literature T₁ value, the function, and some auxiliary data to the above-initialized vectors:
 push!(T1_literature, 1.084) # ± 0.045s in WM
@@ -87,6 +88,7 @@ function calculate_T1_IRStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 850e-3) # s – peak of histogram
@@ -143,6 +145,7 @@ function calculate_T1_IRPreibisch(m0s, R1f, R2f, Rx, R1s, T2s)
     fit = curve_fit(model2, TI, s, [1, 0.8])
     return 1 / fit.param[end]
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 881e-3) # s – median of WM ROIs; mean is 0.882 s
@@ -185,6 +188,7 @@ function calculate_T1_IRShin(m0s, R1f, R2f, Rx, R1s, T2s)
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 0.943) # ± 0.057 s in WM
@@ -255,6 +259,7 @@ function calculate_T1_LLShin(m0s, R1f, R2f, Rx, R1s, T2s)
     R1a_est = fit.param[end] + log(cos(α_exc)) / TR
     return 1 / R1a_est
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 0.964) # ± 116s in WM
@@ -304,6 +309,7 @@ function calculate_T1_IRLu(m0s, R1f, R2f, Rx, R1s, T2s)
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 0.735) # s; median of WM ROIs; reported T1 = (748 ± 64)ms in the splenium of the CC and (699 ± 38)ms in WM
@@ -393,6 +399,7 @@ function calculate_T1_LLStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
     fit = curve_fit(model_num, TI, s, [1.0, 1.0])
     return fit.param[end]
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 0.750) # s – peak of histogram; cf. https://doi.org/10.1016/j.mri.2016.08.021
@@ -428,6 +435,7 @@ function calculate_T1_vFAStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
     T1_est = -TR / log(f.model.pp.beta0[2])
     return T1_est
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 1.07) # s – peak of histogram (cf. https://doi.org/10.1016/j.mri.2016.08.021)
@@ -463,6 +471,7 @@ function calculate_T1_vFACheng(m0s, R1f, R2f, Rx, R1s, T2s)
     T1_est = -TR / log(f.model.pp.beta0[2])
     return T1_est
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 1.0855) # s – mean of two volunteers
@@ -503,6 +512,7 @@ function calculate_T1_vFA_Chavez(m0s, R1f, R2f, Rx, R1s, T2s)
     fit_vFA = curve_fit(vFA_signal, α, s, ones(3))
     return fit_vFA.param[end]
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 1.044) # s; median of corpus callosum ROIs
@@ -537,6 +547,7 @@ function calculate_T1_vFAPreibisch(m0s, R1f, R2f, Rx, R1s, T2s)
     T1_est = -2 * TR * f.model.pp.beta0[2]
     return T1_est
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 0.940) # s; median of ROIs; mean = 0.951s
@@ -568,6 +579,7 @@ function calculate_T1_vFAPreibisch_HYB(m0s, R1f, R2f, Rx, R1s, T2s, α, TR)
     T1_est = -TR / log(SL)
     return T1_est
 end
+nothing #hide #md
 
 # For this sequence, we simulate three different settings with different flip angles and repetition times:
 push!(T1_literature, 0.955) # s
@@ -593,7 +605,7 @@ nothing #hide #md
 
 #src #########################################################
 # ## vFA: Teixeira et al.
-# Variable flip-angle method described by [Teixeira et al. (2019)](http://doi.org/10.1002/mrm.27442)
+# Variable flip-angle method described by [Teixeira et al. (2019)](http://doi.org/10.1002/mrm.27442).
 #src #########################################################
 function calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, ω1rms)
     ## define sequence parameters
@@ -617,6 +629,7 @@ function calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, ω1rms)
     T1_est = -TR / log(f.model.pp.beta0[2])
     return T1_est
 end
+nothing #hide #md
 
 # For this sequence, we simulate five different B₁-RMS values:
 push!(T1_literature, 0.825) # s – read from Fig. 7
@@ -655,7 +668,7 @@ nothing #hide #md
 
 
 #src #########################################################
-# ## MP2RAGE: Marques et al.
+# ## MP₂RAGE: Marques et al.
 # MP₂RAGE method described by [Marques et al. (2010)](https://doi.org/10.1016/j.neuroimage.2009.10.002).
 #src #########################################################
 function calculate_T1_MP2RAGE(m0s, R1f, R2f, Rx, R1s, T2s)
@@ -729,6 +742,7 @@ function calculate_T1_MP2RAGE(m0s, R1f, R2f, Rx, R1s, T2s)
     fit = curve_fit((_, T1) -> MP2RAGE_signal.(T1), [1], [sm], [0.5])
     return fit.param[1]
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 0.81) # ± 0.03 s
@@ -739,8 +753,8 @@ nothing #hide #md
 
 
 #src #########################################################
-# MPRAGE: Wright et al.
-# MPRAGE method described by [Wright et al. (2008)](http://doi.org/10.1007/s10334-008-0104-8).
+# ## MP-RAGE: Wright et al.
+# MP-RAGE method described by [Wright et al. (2008)](http://doi.org/10.1007/s10334-008-0104-8).
 #src #########################################################
 function calculate_T1_MPRAGE_Wright(m0s, R1f, R2f, Rx, R1s, T2s)
     ## define sequence parameters
@@ -828,6 +842,7 @@ function calculate_T1_MPRAGE_Wright(m0s, R1f, R2f, Rx, R1s, T2s)
     fit = curve_fit(MPRAGE_mz, TI, s, [1, sin(α[end]), 0.9π])
     return fit.param[1]
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 0.84) # s
@@ -878,6 +893,7 @@ function calculate_T1_IR_EPI_Wright(m0s, R1f, R2f, Rx, R1s, T2s)
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 0.9) # s – read from Fig. 5
@@ -924,6 +940,7 @@ function calculate_T1_IRReynolds_adiabatic(m0s, R1f, R2f, Rx, R1s, T2s)
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 0.905) # s
@@ -971,6 +988,7 @@ function calculate_T1_IRReynolds_sinc(m0s, R1f, R2f, Rx, R1s, T2s)
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 0.861) # s
@@ -1018,6 +1036,7 @@ function calculate_T1_SRReynolds(m0s, R1f, R2f, Rx, R1s, T2s)
     fit = curve_fit(model3, TI, s, [1, 2, 0.8])
     return 1 / fit.param[end]
 end
+nothing #hide #md
 
 #-
 push!(T1_literature, 1.013) # s

@@ -9,10 +9,10 @@ nothing #hide #md
 
 # ## Initialize plot and output vectors
 #src #########################################################
-p = plot([0.55, 1.15], [0.55, 1.15], xlabel="T1 simulated", ylabel="T1 measured", legend=:topleft, label=:none)
+p = plot([0, 2], [0, 2], xlabel="simulated T₁ (s)", ylabel="literature T₁ (s)", legend=:topleft, label=:none, xlim=(0.5, 1.1), ylim=(0.5, 1.1))
 marker_list = [(seq_type_i == :IR) ? (:circle) : ((seq_type_i == :LL) ? (:cross) : ((seq_type_i == :vFA) ? (:diamond) : ((seq_type_i == :SR) ? (:dtriangle) : (:x)))) for seq_type_i in seq_type]
 
-fit_name = String[]
+fit_name = String[] #hide
 fitted_param = NTuple{6, Float64}[]
 T1_simulated = Array{Float64}[]
 ΔAIC_v = Float64[]
@@ -24,16 +24,16 @@ nothing #hide #md
 #src #########################################################
 # We simulate the mono-exponential model as an MT model with a vanishing semi-solid spin pool. In this case, the underlying MT model is irrelevant and we choose Graham's model for speed purposes:
 MT_model = Graham()
-push!(fit_name, "mono_exp")
+push!(fit_name, "mono_exp") #src
 nothing #hide #md
 
 # The following parameters are hard-coded with the exception of `R1f`, which serves as an initialization for the global fit.
 m0s = 0
 R1f = 1 / 1.084  # 1/s
-R2f = 1 / 0.0769 # 1/s
-Rx = 0           # 1/s
 R1s = R1f        # 1/s
+R2f = 1 / 0.0769 # 1/s
 T2s = 0
+Rx = 0           # 1/s
 ω0 = 0
 B1 = 1
 nothing #hide #md
@@ -67,7 +67,7 @@ T2s # s
 #-
 Rx # 1/s
 # where all but `R1f` are fixed. The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
-scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
+scatter!(p, T1_simulated[1], T1_literature, label="mono-exponential model", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
 
 # ### Akaike (AIC) and Bayesian (BIC) information criteria
@@ -95,16 +95,16 @@ nothing #hide #md
 # ## Unconstrained qMT fit with Graham's model
 #src #########################################################
 MT_model = Graham()
-push!(fit_name, "unconstr_Graham")
+push!(fit_name, "unconstr_Graham") #src
 nothing #hide #md
 
 # The following parameters are hard-coded with the exception of `m0s`, `R1f`, and `R1s`, which serve as an initialization for the global fit.
 m0s = 0.25
 R1f = 1 / 1.84   # 1/s
 R1s = 1 / 0.34   # 1/s
-Rx = 13.6        # 1/s
 R2f = 1 / 0.0769 # 1/s
 T2s = 12.5e-6    # s
+Rx = 13.6        # 1/s
 ω0 = 0
 B1 = 1
 nothing #hide #md
@@ -138,7 +138,7 @@ T2s # s
 #-
 Rx # 1/s
 # where all but `m0s`, `R1f`, and `R1s` are fixed. The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
-scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
+scatter!(p, T1_simulated[2], T1_literature, label="Graham's model (unconstrained R₁ˢ)", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
 
 
@@ -164,16 +164,16 @@ nothing #hide #md
 # ## Constrained qMT fit with the generalized Bloch model
 #src #########################################################
 MT_model = gBloch()
-push!(fit_name, "constr_gBloch")
+push!(fit_name, "constr_gBloch") #src
 nothing #hide #md
 
 # The following parameters are hard-coded with the exception of `m0s`, and `R1f`, which serve as an initialization for the global fit.
 m0s = 0.139
 R1f = 1 / 1.084  # 1/s
-R2f = 1 / 0.0769 # 1/s
-Rx = 23          # 1/s
 R1s = 1          # 1/s
+R2f = 1 / 0.0769 # 1/s
 T2s = 12.5e-6    # s
+Rx = 23          # 1/s
 ω0 = 0
 B1 = 1
 nothing #hide #md
@@ -208,7 +208,7 @@ T2s # s
 #-
 Rx # 1/s
 # where all but `m0s`, `R1f`, and are fixed (`R1s = R1f`). The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
-scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
+scatter!(p, T1_simulated[3], T1_literature, label="generalized Bloch model (R₁ˢ = R₁ᶠ constraint)", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
 
 
@@ -234,16 +234,16 @@ nothing #hide #md
 # Unconstrained qMT fit with the generalized Bloch model
 #src #########################################################
 MT_model = gBloch()
-push!(fit_name, "unconstr_gBloch")
+push!(fit_name, "unconstr_gBloch") #src
 nothing #hide #md
 
 # The following parameters are hard-coded with the exception of `m0s`, `R1f`, and `R1s`, which serve as an initialization for the global fit.
 m0s = 0.25
 R1f = 1 / 1.84   # 1/s
 R1s = 1 / 0.34   # 1/s
-Rx = 13.6        # 1/s
 R2f = 1 / 0.0769 # 1/s
 T2s = 12.5e-6    # s
+Rx = 13.6        # 1/s
 ω0 = 0
 B1 = 1
 nothing #hide #md
@@ -277,7 +277,7 @@ T2s # s
 #-
 Rx # 1/s
 # where all but `m0s`, `R1f`, and `R1s` are fixed. The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
-scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
+scatter!(p, T1_simulated[4], T1_literature, label="generalized Bloch model (unconstrained R₁ˢ)", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
 
 

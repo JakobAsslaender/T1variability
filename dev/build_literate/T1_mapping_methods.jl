@@ -3,6 +3,8 @@ T1_functions = []
 incl_fit = Bool[]
 seq_name = String[]
 seq_type = Symbol[]
+using GLM #hide
+using StaticArrays #hide
 
 function calculate_T1_IRStanisz(m0s, R1f, R2f, Rx, R1s, T2s)
     # define sequence parameters

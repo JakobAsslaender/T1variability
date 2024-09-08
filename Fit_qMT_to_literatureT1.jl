@@ -3,24 +3,23 @@
 include("helper_functions.jl")
 nothing #hide #md
 
-# and load all [T₁-mapping methods](@ref):
+# load all [T₁-mapping methods](@ref):
 include("T1_mapping_methods.jl")
 nothing #hide #md
 
-# ## Initialize plot and output vectors
-#src #########################################################
-p = plot([0, 2], [0, 2], xlabel="simulated T₁ (s)", ylabel="literature T₁ (s)", legend=:topleft, label=:none, xlim=(0.5, 1.1), ylim=(0.5, 1.1))
+# and initialize the plot:
+p = plot([0, 2], [0, 2], xlabel="simulated T1 (s)", ylabel="literature T1 (s)", legend=:topleft, label=:none, xlim=(0.5, 1.1), ylim=(0.5, 1.1))
 marker_list = [(seq_type_i == :IR) ? (:circle) : ((seq_type_i == :LL) ? (:cross) : ((seq_type_i == :vFA) ? (:diamond) : ((seq_type_i == :SR) ? (:dtriangle) : (:x)))) for seq_type_i in seq_type]
 
-fit_name = String[] #hide
-fitted_param = NTuple{6, Float64}[]
-T1_simulated = Array{Float64}[]
-ΔAIC_v = Float64[]
-ΔBIC_v = Float64[]
+fit_name = String[] #src
+fitted_param = NTuple{6, Float64}[] #src
+T1_simulated_v = Array{Float64}[] #src
+ΔAIC_v = Float64[] #src
+ΔBIC_v = Float64[] #src
 nothing #hide #md
 
 #src #########################################################
-# ## Mono-exponential fit
+# ## Mono-exponential model
 #src #########################################################
 # We simulate the mono-exponential model as an MT model with a vanishing semi-solid spin pool. In this case, the underlying MT model is irrelevant and we choose Graham's model for speed purposes:
 MT_model = Graham()
@@ -47,38 +46,30 @@ function model(iseq, p)
     end
     return T1
 end
-
-# Perform the fit and save the global set of parameters:
-fit_mono = curve_fit(model, 1:length(T1_literature), T1_literature, [R1f], x_tol=1e-3)
-push!(fitted_param, (m0s, fit_mono.param[1], R2f, Rx, R1s, T2s))
-push!(T1_simulated, model(1:length(T1_literature), fit_mono.param))
 nothing #hide #md
 
-# For this model, the global set of parameters is:
-m0s
-#-
-T1f_fitted = 1/fit_mono.param[1] # s
-#-
-1/R1s # s
-#-
-1/R2f # s
-#-
-T2s # s
-#-
-Rx # 1/s
-# where all but `R1f` are fixed. The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
-scatter!(p, T1_simulated[1], T1_literature, label="mono-exponential model", markershape=marker_list, hover=seq_name)
+# Perform the fit and calculate the simulated T₁:
+fit_mono = curve_fit(model, 1:length(T1_literature), T1_literature, [R1f], x_tol=1e-3)
+T1_simulated = model(1:length(T1_literature), fit_mono.param)
+push!(fitted_param, (m0s, fit_mono.param[1], R2f, Rx, R1s, T2s)) #src
+push!(T1_simulated_v, T1_simulated) #src
+nothing #hide #md
+
+# For this model, the single fitted global of parameter is:
+T1f = 1/fit_mono.param[1] # s
+# The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
+scatter!(p, T1_simulated, T1_literature, label="mono-exponential model", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
 
 # ### Akaike (AIC) and Bayesian (BIC) information criteria
-# The information criteria depend on the number of measurements `n`, the number of parameters `k`, and the squared sum of the residuals `RSS`:
+# The information criteria depend on the number of measurements:
 n = length(T1_literature)
-#-
+# the number of parameters:
 k = length(fit_mono.param)
-#-
+# and the squared sum of the residuals:
 RSS = norm(fit_mono.resid)^2
 
-# As the AIC and BIC are only informative in the difference, between two models, we use the mono-exponential model as the reference:
+# As the AIC and BIC are only informative in the difference between two models, we use the mono-exponential model as the reference:
 AIC_mono = n * log(RSS / n) + 2k
 #-
 BIC_mono = n * log(RSS / n) + k * log(n)
@@ -86,13 +77,12 @@ BIC_mono = n * log(RSS / n) + k * log(n)
 ΔAIC = n * log(RSS / n) + 2k - AIC_mono
 # as is `ΔBIC`:
 ΔBIC = n * log(RSS / n) + k * log(n) - BIC_mono
-# Store the results:
-push!(ΔAIC_v, ΔAIC)
-push!(ΔBIC_v, ΔBIC)
-nothing #hide #md
+
+push!(ΔAIC_v, ΔAIC) #src
+push!(ΔBIC_v, ΔBIC) #src
 
 #src #########################################################
-# ## Unconstrained qMT fit with Graham's model
+# ## Graham's MT model (unconstrained R₁ˢ)
 #src #########################################################
 MT_model = Graham()
 push!(fit_name, "unconstr_Graham") #src
@@ -118,29 +108,26 @@ function model(iseq, p)
     end
     return T1
 end
-
-# Perform the fit and save the global set of parameters:
-fit_Graham = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f, R1s], x_tol=1e-3)
-push!(fitted_param, (fit_Graham.param[1], fit_Graham.param[2], R2f, Rx, fit_Graham.param[3], T2s))
-push!(T1_simulated, model(1:length(T1_literature), fit_Graham.param))
 nothing #hide #md
 
-# For this model, the global set of parameters is:
-m0s_fitted = fit_Graham.param[1]
+# Perform the fit and calculate the simulated T₁:
+fit_Graham = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f, R1s], x_tol=1e-3)
+T1_simulated = model(1:length(T1_literature), fit_Graham.param)
+push!(fitted_param, (fit_Graham.param[1], fit_Graham.param[2], R2f, Rx, fit_Graham.param[3], T2s)) #src
+push!(T1_simulated_v, T1_simulated) #src
+nothing #hide #md
+
+# For this model, the fitted global set of parameters is:
+m0s = fit_Graham.param[1]
 #-
-T1f_fitted = 1/fit_Graham.param[2] # s
+T1f = 1/fit_Graham.param[2] # s
 #-
-T1s_fitted = 1/fit_Graham.param[3] # s
-#-
-1/R2f # s
-#-
-T2s # s
-#-
-Rx # 1/s
-# where all but `m0s`, `R1f`, and `R1s` are fixed. The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
-scatter!(p, T1_simulated[2], T1_literature, label="Graham's model (unconstrained R₁ˢ)", markershape=marker_list, hover=seq_name)
+T1s = 1/fit_Graham.param[3] # s
+# The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
+scatter!(p, T1_simulated, T1_literature, label="Graham's model (unconstrained R₁ˢ)", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
 
+# Note that clicking on a  legend entry removes the fit from the plot. A double click on an entry selects only this particular fit.
 
 # ### Akaike (AIC) and Bayesian (BIC) information criteria
 # The information criteria depend on the number of measurements `n`, the number of parameters `k`, and the squared sum of the residuals `RSS`:
@@ -154,14 +141,13 @@ RSS = norm(fit_Graham.resid)^2
 ΔAIC = n * log(RSS / n) + 2k - AIC_mono
 # and similarly for the BIC:
 ΔBIC = n * log(RSS / n) + k * log(n) - BIC_mono
-# Store the results:
-push!(ΔAIC_v, ΔAIC)
-push!(ΔBIC_v, ΔBIC)
-nothing #hide #md
+
+push!(ΔAIC_v, ΔAIC) #src
+push!(ΔBIC_v, ΔBIC) #src
 
 
 #src #########################################################
-# ## Constrained qMT fit with the generalized Bloch model
+# ## Generalized Bloch model (R₁ˢ = R₁ᶠ)
 #src #########################################################
 MT_model = gBloch()
 push!(fit_name, "constr_gBloch") #src
@@ -188,29 +174,24 @@ function model(iseq, p)
     end
     return T1
 end
-
-# Perform the fit and save the global set of parameters:
-fit_constr = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f], x_tol=1e-3)
-push!(fitted_param, (fit_constr.param[1], fit_constr.param[2], R2f, Rx, fit_constr.param[2], T2s))
-push!(T1_simulated, model(1:length(T1_literature), fit_constr.param))
 nothing #hide #md
 
-# For this model, the global set of parameters is:
-m0s_fitted = fit_constr.param[1]
+# Perform the fit and calculate the simulated T₁:
+fit_constr = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f], x_tol=1e-3)
+T1_simulated = model(1:length(T1_literature), fit_constr.param)
+push!(fitted_param, (fit_constr.param[1], fit_constr.param[2], R2f, Rx, fit_constr.param[2], T2s)) #src
+push!(T1_simulated_v, T1_simulated) #src
+nothing #hide #md
+
+# For this model, the fitted global set of parameters is:
+m0s = fit_constr.param[1]
 #-
-T1f_fitted = 1/fit_constr.param[2] # s
-#-
-T1s_fitted = 1/fit_constr.param[2] # s
-#-
-1/R2f # s
-#-
-T2s # s
-#-
-Rx # 1/s
-# where all but `m0s`, `R1f`, and are fixed (`R1s = R1f`). The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
-scatter!(p, T1_simulated[3], T1_literature, label="generalized Bloch model (R₁ˢ = R₁ᶠ constraint)", markershape=marker_list, hover=seq_name)
+T1f = 1/fit_constr.param[2] # s
+# The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
+scatter!(p, T1_simulated, T1_literature, label="generalized Bloch model (R₁ˢ = R₁ᶠ constraint)", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
 
+# Note that clicking on a  legend entry removes the fit from the plot. A double click on an entry selects only this particular fit.
 
 # ### Akaike (AIC) and Bayesian (BIC) information criteria
 # The information criteria depend on the number of measurements `n`, the number of parameters `k`, and the squared sum of the residuals `RSS`:
@@ -224,14 +205,13 @@ RSS = norm(fit_constr.resid)^2
 ΔAIC = n * log(RSS / n) + 2k - AIC_mono
 # and similarly for the BIC:
 ΔBIC = n * log(RSS / n) + k * log(n) - BIC_mono
-# Store the results:
-push!(ΔAIC_v, ΔAIC)
-push!(ΔBIC_v, ΔBIC)
-nothing #hide #md
+
+push!(ΔAIC_v, ΔAIC) #src
+push!(ΔBIC_v, ΔBIC) #src
 
 
 #src #########################################################
-# Unconstrained qMT fit with the generalized Bloch model
+# ## Generalized Bloch model (unconstrained R₁ˢ)
 #src #########################################################
 MT_model = gBloch()
 push!(fit_name, "unconstr_gBloch") #src
@@ -257,31 +237,28 @@ function model(iseq, p)
     end
     return T1
 end
-
-# Perform the fit and save the global set of parameters:
-fit_uncon = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f, R1s], x_tol=1e-3, show_trace=true)
-push!(fitted_param, (fit_uncon.param[1], fit_uncon.param[2], R2f, Rx, fit_uncon.param[3], T2s))
-push!(T1_simulated, model(1:length(T1_literature), fit_uncon.param))
 nothing #hide #md
 
-# For this model, the global set of parameters is:
-m0s_fitted = fit_uncon.param[1]
+# Perform the fit and calculate the simulated T₁:
+fit_uncon = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f, R1s], x_tol=1e-3)
+T1_simulated = model(1:length(T1_literature), fit_uncon.param)
+push!(fitted_param, (fit_uncon.param[1], fit_uncon.param[2], R2f, Rx, fit_uncon.param[3], T2s)) #src
+push!(T1_simulated_v, T1_simulated) #src
+nothing #hide #md
+
+# For this model, the fitted global set of parameters is:
+m0s = fit_uncon.param[1]
 #-
-T1f_fitted = 1/fit_uncon.param[2] # s
+T1f = 1/fit_uncon.param[2] # s
 #-
-T1s_fitted = 1/fit_uncon.param[3] # s
-#-
-1/R2f # s
-#-
-T2s # s
-#-
-Rx # 1/s
-# where all but `m0s`, `R1f`, and `R1s` are fixed. The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
-scatter!(p, T1_simulated[4], T1_literature, label="generalized Bloch model (unconstrained R₁ˢ)", markershape=marker_list, hover=seq_name)
+T1s = 1/fit_uncon.param[3] # s
+# The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
+scatter!(p, T1_simulated, T1_literature, label="generalized Bloch model (unconstrained R₁ˢ)", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
 
+# Note that clicking on a  legend entry removes the fit from the plot. A double click on an entry selects only this particular fit.
 
-# ## Akaike (AIC) and Bayesian (BIC) information criteria
+# ### Akaike (AIC) and Bayesian (BIC) information criteria
 # The information criteria depend on the number of measurements `n`, the number of parameters `k`, and the squared sum of the residuals `RSS`:
 n = length(T1_literature)
 #-
@@ -293,11 +270,9 @@ RSS = norm(fit_uncon.resid)^2
 ΔAIC = n * log(RSS / n) + 2k - AIC_mono
 # and similarly for the BIC:
 ΔBIC = n * log(RSS / n) + k * log(n) - BIC_mono
-# Store the results:
-push!(ΔAIC_v, ΔAIC)
-push!(ΔBIC_v, ΔBIC)
-nothing #hide #md
 
+push!(ΔAIC_v, ΔAIC) #src
+push!(ΔBIC_v, ΔBIC) #src
 
 
 

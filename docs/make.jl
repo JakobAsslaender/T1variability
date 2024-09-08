@@ -18,11 +18,8 @@ function Base.show(io::IO, ::MIME"text/html", p::HTMLPlot)
     mkpath(PLOT_DIR)
     path = joinpath(PLOT_DIR, string(UInt32(floor(rand()*1e9)), ".html"))
     Plots.savefig(p.p, path)
-    if get(ENV, "CI", "false") == "true" # for prettyurl
-        print(io, "<object type=\"text/html\" data=\"../../$(relpath(path, ROOT_DIR))\" style=\"width:100%;height:425px;\"></object>")
-    else
-        print(io, "<object type=\"text/html\" data=\"../$(relpath(path, ROOT_DIR))\" style=\"width:100%;height:425px;\"></object>")
-    end
+    rel_path = get(ENV, "CI", "false") == "true" ? "../.." : ".."
+    print(io, "<object type=\"text/html\" data=\"$(rel_path)/$(relpath(path, ROOT_DIR))\" style=\"width:100%;height:700px;\"></object>")
 end
 
 # Notebook hack to display inline math correctly

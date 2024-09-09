@@ -75,7 +75,7 @@ function RF_pulse_propagator(ω1::Function, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s
     return U
 end
 
-function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Sled; spoiler=true)
+function RF_pulse_propagator(ω1::Number, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Graham; spoiler=true)
     m0 = zeros(5)
     U = zeros(6, 6)
     Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
@@ -84,28 +84,12 @@ function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, mod
     for i ∈ i_in
         m0 .= 0
         m0[i] = 1
-        mfun(p, t; idxs=nothing) = typeof(idxs) <: Number ? m0[idxs] : m0
-        Ui[1:5, i] = solve(ODEProblem(apply_hamiltonian_sled!, m0, (0, TRF), (ω1, B1, ω0, m0s, R1f, R2f, Rx, R1s, T2s, G)), reltol=1e-6)[end]
+        Ui[1:5, i] = solve(ODEProblem(apply_hamiltonian_graham_superlorentzian!, m0, (0, TRF), (ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s)), Vern9(), reltol=1e-6)[end]
     end
     return U
 end
 
-function RF_pulse_propagator(ω1::Real, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Graham; spoiler=true)
-    m0 = zeros(5)
-    U = zeros(6, 6)
-    Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
-
-    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only the z magnetization is non-zero
-    for i ∈ i_in
-        m0 .= 0
-        m0[i] = 1
-        mfun(p, t; idxs=nothing) = typeof(idxs) <: Number ? m0[idxs] : m0
-        Ui[1:5, i] = solve(ODEProblem(apply_hamiltonian_graham_superlorentzian!, m0, (0, TRF), (ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s)), reltol=1e-6)[end]
-    end
-    return U
-end
-
-function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Graham; spoiler=true)
+function RF_pulse_propagator(ω1::Function, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Graham; spoiler=true)
     Rrf = graham_saturation_rate_spectral_fast(ω1, B1, ω0, TRF, T2s)
 
     m0 = zeros(5)
@@ -116,8 +100,22 @@ function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, mod
     for i ∈ i_in
         m0 .= 0
         m0[i] = 1
+        Ui[1:5, i] = solve(ODEProblem(apply_hamiltonian_linear!, m0, (0, TRF), (ω1, B1, ω0, m0s, R1f, R2f, Rx, R1s, Rrf)), Vern9(), reltol=1e-6)[end]
+    end
+    return U
+end
+
+function RF_pulse_propagator(ω1, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::Sled; spoiler=true)
+    m0 = zeros(5)
+    U = zeros(6, 6)
+    Ui = @view U[[1:3; 5:6], [1:3; 5:6]]
+
+    i_in = spoiler ? (3:5) : (1:5) # if a spoiler precedes the pulse, only the z magnetization is non-zero
+    for i ∈ i_in
+        m0 .= 0
+        m0[i] = 1
         mfun(p, t; idxs=nothing) = typeof(idxs) <: Number ? m0[idxs] : m0
-        Ui[1:5, i] = solve(ODEProblem(apply_hamiltonian_linear!, m0, (0, TRF), (ω1, B1, ω0, m0s, R1f, R2f, Rx, R1s, Rrf)), reltol=1e-6)[end]
+        Ui[1:5, i] = solve(ODEProblem(apply_hamiltonian_sled!, m0, (0, TRF), (ω1, B1, ω0, m0s, R1f, R2f, Rx, R1s, T2s, G)), Vern9(), reltol=1e-6)[end]
     end
     return U
 end

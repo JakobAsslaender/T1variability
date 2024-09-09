@@ -41,8 +41,8 @@ push!(seq_type, :IR)
 function calculate_T1_IRStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
     # define sequence parameters
     nLobes = 3 # confirmed by authors
-    TRF_exc = 3.072e-3 # s – confirmed by authors
-    TRF_ref = 3e-3 # s – confirmed by authors
+    TRF_exc = 3.072e-3 # s; confirmed by authors
+    TRF_ref = 3e-3 # s; confirmed by authors
     TI = [30e-3, 530e-3, 1.03, 1.53] # s
     TR = 1.55 # s
     TE = 11e-3 # s
@@ -74,7 +74,7 @@ function calculate_T1_IRStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
     return 1 / fit.param[end]
 end
 
-push!(T1_literature, 850e-3) # s – peak of histogram
+push!(T1_literature, 850e-3) # s; peak of histogram
 push!(T1_functions, calculate_T1_IRStikhov)
 push!(seq_name, "IR Stikhov et al.")
 push!(seq_type, :IR)
@@ -123,14 +123,14 @@ function calculate_T1_IRPreibisch(m0s, R1f, R2f, Rx, R1s, T2s)
     return 1 / fit.param[end]
 end
 
-push!(T1_literature, 881e-3) # s – median of WM ROIs; mean is 0.882 s
+push!(T1_literature, 881e-3) # s; median of WM ROIs; mean is 0.882 s
 push!(T1_functions, calculate_T1_IRPreibisch)
 push!(seq_name, "IR Preibisch et al.")
 push!(seq_type, :IR)
 
 function calculate_T1_IRShin(m0s, R1f, R2f, Rx, R1s, T2s)
     # define sequence parameters
-    TI = exp.(range(log(34e-3), log(15), 10)) # s – Authors did not recall the TIs, but said they had at least 3–4 short times
+    TI = exp.(range(log(34e-3), log(15), 10)) # s; Authors did not recall the TIs, but said they had at least 3–4 short times
     TR = 30 # s
     TRF_exc = 2.56e-3 # from Shin's memory
 
@@ -168,14 +168,14 @@ function calculate_T1_LLShin(m0s, R1f, R2f, Rx, R1s, T2s)
     Nslices = 28 # (inner loop)
     iSlice = Nslices - 18 # guessed from cf. Fig. 6 and 7, the author suggested that the slices were acquired in ascending order
 
-    TI1 = 12e-3 # s – the author suggested < 12ms
-    TD = 10 + TI1 # s – time duration of data acquisition per IR period
+    TI1 = 12e-3 # s; the author suggested < 12ms
+    TD = 10 + TI1 # s; time duration of data acquisition per IR period
     TR = 0.4 # s
     TR_slice = TR / Nslices
     TI = (0:TR:TD-TR)
 
     α_exc = 16 * π / 180 # rad
-    TRF_exc = 2.56e-3 # s – from the authors' memory
+    TRF_exc = 2.56e-3 # s; from the authors' memory
     nLobes = 3
     Δω0 = (nLobes + 1) * 2π / TRF_exc # rad/s
     ω0slice = ((1:Nslices) .- iSlice) * Δω0
@@ -228,7 +228,7 @@ push!(seq_type, :LL)
 
 function calculate_T1_IRLu(m0s, R1f, R2f, Rx, R1s, T2s)
     # define sequence parameters
-    TRF_exc = 1e-3 # s – 0.5-2 ms according to P Zijl
+    TRF_exc = 1e-3 # s; 0.5-2 ms according to P Zijl
     TI = [180, 630, 1170, 1830, 2610, 3450, 4320, 5220, 6120, 7010] .* 1e-3 # s
     TD = 8 # s
     TE = 42e-3 # s
@@ -272,7 +272,7 @@ function calculate_T1_LLStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
     # define sequence parameters
     TR = 1.55 # s
     TI = [30e-3, 530e-3, 1.03, 1.53] # s
-    TRF_inv = 720e-6 # s – for 180deg pulse, 90deg pulse are half as long
+    TRF_inv = 720e-6 # s; for 180deg pulse, 90deg pulse are half as long
 
     # simulate signal with an MT model
     u_90  = MRIgeneralizedBloch.xs_destructor(nothing) * RF_pulse_propagator(π / TRF_inv, B1, ω0, TRF_inv / 2, m0s, R1f, R2f, Rx, R1s, T2s, MT_model, spoiler=true)
@@ -285,7 +285,7 @@ function calculate_T1_LLStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
 
     α_exc = 5 * π / 180 # rad
     nLobes = 7 # confirmed by authors
-    TRF_exc = 2.56e-3 # s – confirmed by authors
+    TRF_exc = 2.56e-3 # s; confirmed by authors
     ω1 = sinc_pulse(α_exc, TRF_exc; nLobes=nLobes)
     u_exc = RF_pulse_propagator(ω1, B1, ω0, TRF_exc, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
@@ -345,7 +345,7 @@ function calculate_T1_LLStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
     return fit.param[end]
 end
 
-push!(T1_literature, 0.750) # s – peak of histogram; cf. https://doi.org/10.1016/j.mri.2016.08.021
+push!(T1_literature, 0.750) # s; peak of histogram; cf. https://doi.org/10.1016/j.mri.2016.08.021
 push!(T1_functions, calculate_T1_LLStikhov)
 push!(seq_name, "LL Stikhov et al.")
 push!(seq_type, :LL)
@@ -354,7 +354,7 @@ function calculate_T1_vFAStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
     # define sequence parameters
     α = [3, 10, 20, 30] * π / 180 # rad
     TR = 15e-3 # s
-    TRF = 2e-3 # s – confirmed by authors
+    TRF = 2e-3 # s; confirmed by authors
     nLobes = 9 # confirmed by authors
 
     # simulate signal with an MT model
@@ -373,7 +373,7 @@ function calculate_T1_vFAStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
     return T1_est
 end
 
-push!(T1_literature, 1.07) # s – peak of histogram (cf. https://doi.org/10.1016/j.mri.2016.08.021)
+push!(T1_literature, 1.07) # s; peak of histogram (cf. https://doi.org/10.1016/j.mri.2016.08.021)
 push!(T1_functions, calculate_T1_vFAStikhov)
 push!(seq_name, "vFA Stikhov et al.")
 push!(seq_type, :vFA)
@@ -382,7 +382,7 @@ function calculate_T1_vFACheng(m0s, R1f, R2f, Rx, R1s, T2s)
     # define sequence parameters
     α = [2, 9, 19] * π / 180 # rad
     TR = 6.1e-3 # s
-    TRF = 1e-3 # s – guessed
+    TRF = 1e-3 # s; guessed
     nLobes = 3 # guessed
 
     # simulate signal with an MT model
@@ -401,7 +401,7 @@ function calculate_T1_vFACheng(m0s, R1f, R2f, Rx, R1s, T2s)
     return T1_est
 end
 
-push!(T1_literature, 1.0855) # s – mean of two volunteers
+push!(T1_literature, 1.0855) # s; mean of two volunteers
 push!(T1_functions, calculate_T1_vFACheng)
 push!(seq_name, "vFA Cheng et al.")
 push!(seq_type, :vFA)
@@ -414,7 +414,7 @@ function calculate_T1_vFA_Chavez(m0s, R1f, R2f, Rx, R1s, T2s)
     # simulate signal with an MT model
     s = similar(α)
     for i in eachindex(α)
-        TRF = α[i] / (π/0.5e-3) # s – guessed, incl. constant ω1 / variable TRF
+        TRF = α[i] / (π/0.5e-3) # s; guessed, incl. constant ω1 / variable TRF
         u_exc = RF_pulse_propagator(α[i]/TRF, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, MT_model) # rect. pulse shape guessed because "slab-select gradient [...] [is] turned off"
         u_fp = exp(hamiltonian_linear(0, B1, ω0, TR - TRF, m0s, R1f, R2f, Rx, R1s, 1))
 
@@ -443,7 +443,7 @@ function calculate_T1_vFAPreibisch(m0s, R1f, R2f, Rx, R1s, T2s)
     # define sequence parameters
     α = [4, 18] * π / 180 # rad
     TR = 7.6e-3 # s
-    TRF = 0.2e-3 # s – confirmed by Dr. Deichmann
+    TRF = 0.2e-3 # s; confirmed by Dr. Deichmann
 
     # simulate signal with an MT model
     s = similar(α)
@@ -468,7 +468,7 @@ push!(seq_type, :vFA)
 
 function calculate_T1_vFAPreibisch_HYB(m0s, R1f, R2f, Rx, R1s, T2s, α, TR)
     # define sequence parameters
-    TRF = 0.2e-3 # s – confirmed by Dr. Deichmann
+    TRF = 0.2e-3 # s; confirmed by Dr. Deichmann
 
     # simulate signal with an MT model
     s = similar(α)
@@ -503,8 +503,8 @@ push!(seq_type, :vFA)
 function calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, ω1rms)
     # define sequence parameters
     α = [6, 12, 18] * π / 180 # rad – provided Dr. Teixeira
-    TR = 15e-3 # s – provided by Dr. Teixeira for Fig. 7
-    TRF = 3e-3 # s – confirmed by Dr. Teixeira
+    TR = 15e-3 # s; provided by Dr. Teixeira for Fig. 7
+    TRF = 3e-3 # s; confirmed by Dr. Teixeira
     ω0_CSMT = 6e3 * 2π # 6kHz – confirmed by Dr. Teixeira
 
     # simulate signal with an MT model
@@ -523,27 +523,27 @@ function calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, ω1rms)
     return T1_est
 end
 
-push!(T1_literature, 0.825) # s – read from Fig. 7
+push!(T1_literature, 0.825) # s; read from Fig. 7
 push!(T1_functions, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, 0.4e-6 * 267.522e6)) # rad/s
 push!(seq_name, "vFA CSMT w/ B1rms = 0.4uT Teixeira et al.")
 push!(seq_type, :vFA)
 
-push!(T1_literature, 0.775) # s – read from Fig. 7
+push!(T1_literature, 0.775) # s; read from Fig. 7
 push!(T1_functions, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, 0.8e-6 * 267.522e6)) # rad/s
 push!(seq_name, "vFA CSMT w/ B1rms = 0.8uT Teixeira et al.")
 push!(seq_type, :vFA)
 
-push!(T1_literature, 0.73) # s – read from Fig. 7
+push!(T1_literature, 0.73) # s; read from Fig. 7
 push!(T1_functions, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, 1.2e-6 * 267.522e6)) # rad/s
 push!(seq_name, "vFA CSMT w/ B1rms = 1.2uT Teixeira et al.")
 push!(seq_type, :vFA)
 
-push!(T1_literature, 0.68) # s – read from Fig. 7
+push!(T1_literature, 0.68) # s; read from Fig. 7
 push!(T1_functions, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, 1.6e-6 * 267.522e6)) # rad/s
 push!(seq_name, "vFA CSMT w/ B1rms = 1.6uT Teixeira et al.")
 push!(seq_type, :vFA)
 
-push!(T1_literature, 0.64) # s – read from Fig. 7
+push!(T1_literature, 0.64) # s; read from Fig. 7
 push!(T1_functions, (m0s, R1f, R2f, Rx, R1s, T2s) -> calculate_T1_vFATeixeira(m0s, R1f, R2f, Rx, R1s, T2s, 2e-6 * 267.522e6)) # rad/s
 push!(seq_name, "vFA CSMT w/ B1rms = 2uT Teixeira et al.")
 push!(seq_type, :vFA)
@@ -571,8 +571,8 @@ function calculate_T1_MP2RAGE(m0s, R1f, R2f, Rx, R1s, T2s)
 
     # excitation blocks
     # binomial water excitation pulses; 1-2-1 pulse scheme confirmed for the Siemens product sequence; not specifically for the prototype.
-    TRF_bin = 0.2e-3 # s – guessed, but has little influence the estimated T1
-    τ = 1 / (2 * 430) - TRF_bin # s – fat-water shift = 440Hz
+    TRF_bin = 0.2e-3 # s; guessed, but has little influence the estimated T1
+    τ = 1 / (2 * 430) - TRF_bin # s; fat-water shift = 440Hz
     TRF_exc = 2τ + 3TRF_bin # s
 
     u_1 = RF_pulse_propagator(α[1] / 4 / TRF_bin, B1, ω0, TRF_bin, m0s, R1f, R2f, Rx, R1s, T2s, MT_model, spoiler=false)
@@ -635,10 +635,10 @@ function calculate_T1_MPRAGE_Wright(m0s, R1f, R2f, Rx, R1s, T2s)
 
     # simulate signal with an MT model
     # adiabatic inversion pulse
-    TRF_inv = 13.5e-3 # s – from the paper
-    β = 600 # 1/s – picked for 10kHz bandwidth
+    TRF_inv = 13.5e-3 # s; from the paper
+    β = 600 # 1/s; picked for 10kHz bandwidth
     μ = 5  # rad – 50 rad would match 10 kHz bandwidth, 5 rad chosen for computation speed (makes little difference)
-    ω₁ᵐᵃˣ = 4 * sqrt(μ) * β # rad/s – compromise of appromximating 1.25 >> 1 and keeping B1max in limits
+    ω₁ᵐᵃˣ = 4 * sqrt(μ) * β # rad/s; compromise of appromximating 1.25 >> 1 and keeping B1max in limits
     ω1, _, φ, TRF_inv = sech_inversion_pulse(TRF=TRF_inv, β=β, μ=μ, ω₁ᵐᵃˣ=ω₁ᵐᵃˣ) # standard Philips inverson pulse, likely hyperbolic secant, as confirmed by Dr. Gowland
     u_inv = u_sp * RF_pulse_propagator(ω1, B1, φ, TRF_inv, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
@@ -728,9 +728,9 @@ function calculate_T1_IR_EPI_Wright(m0s, R1f, R2f, Rx, R1s, T2s)
     # simulate signal with an MT model
     # adiabatic inversion pulse
     TRF_inv = 17.51e-3 # s
-    β = 500 # 1/s – chosen to fit 713Hz bandwidth
+    β = 500 # 1/s; chosen to fit 713Hz bandwidth
     μ = 5   # rad – chosen to fit 713Hz bandwidth
-    ω₁ᵐᵃˣ = 2 * sqrt(μ) * β # rad/s – compromise of appromximating 2 >> 1 and keeping B1max in limits
+    ω₁ᵐᵃˣ = 2 * sqrt(μ) * β # rad/s; compromise of appromximating 2 >> 1 and keeping B1max in limits
     ω1, _, φ, TRF_inv = sech_inversion_pulse(TRF=TRF_inv, β=β, μ=μ, ω₁ᵐᵃˣ=ω₁ᵐᵃˣ)
     u_inv = u_sp * RF_pulse_propagator(ω1, B1, φ, TRF_inv, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
@@ -755,18 +755,18 @@ function calculate_T1_IR_EPI_Wright(m0s, R1f, R2f, Rx, R1s, T2s)
     return 1 / fit.param[end]
 end
 
-push!(T1_literature, 0.9) # s – read from Fig. 5
+push!(T1_literature, 0.9) # s; read from Fig. 5
 push!(T1_functions, calculate_T1_IR_EPI_Wright)
 push!(seq_name, "IR EPI Wright et al.")
 push!(seq_type, :IR)
 
 function calculate_T1_IRReynolds_adiabatic(m0s, R1f, R2f, Rx, R1s, T2s)
     # define sequence parameters
-    TRF_exc = 1e-3 # s – guessed
-    nLobes = 3 # s – guessed
-    TI = [5.5, 10.2, 35.8, 66.9, 125, 234, 598, 818, 1118, 1529, 3910, 5348] .* 1e-3 # s – measured from end to beginning of respective pulse (confirmed by Dr. Reynolds)
+    TRF_exc = 1e-3 # s; guessed
+    nLobes = 3 # s; guessed
+    TI = [5.5, 10.2, 35.8, 66.9, 125, 234, 598, 818, 1118, 1529, 3910, 5348] .* 1e-3 # s; measured from end to beginning of respective pulse (confirmed by Dr. Reynolds)
     TD = 5 # s
-    TE = 10e-3 # s – guessed, but has negligible impact
+    TE = 10e-3 # s; guessed, but has negligible impact
 
     # simulate signal with an MT model
     # adiabatic inversion pulse
@@ -801,11 +801,11 @@ push!(seq_type, :IR)
 
 function calculate_T1_IRReynolds_sinc(m0s, R1f, R2f, Rx, R1s, T2s)
     # define sequence parameters
-    TRF_exc = 1e-3 # s – guessed
-    nLobes_exc = 3 # s – guessed
-    TI = [5.5, 10.2, 35.8, 66.9, 125, 234, 598, 818, 1118, 1529, 3910, 5348] .* 1e-3 # s – measured from end to beginning of respective pulse (confirmed by Dr. Reynolds)
+    TRF_exc = 1e-3 # s; guessed
+    nLobes_exc = 3 # s; guessed
+    TI = [5.5, 10.2, 35.8, 66.9, 125, 234, 598, 818, 1118, 1529, 3910, 5348] .* 1e-3 # s; measured from end to beginning of respective pulse (confirmed by Dr. Reynolds)
     TD = 5 # s
-    TE = 10e-3 # s – guessed, but has negligible impact
+    TE = 10e-3 # s; guessed, but has negligible impact
 
     # simulate signal with an MT model
     # excitation block
@@ -841,11 +841,11 @@ push!(seq_type, :IR)
 
 function calculate_T1_SRReynolds(m0s, R1f, R2f, Rx, R1s, T2s)
     # define sequence parameters
-    TRF_exc = 1e-3 # s – guessed, but has negligible impact
+    TRF_exc = 1e-3 # s; guessed, but has negligible impact
     nLobes_exc = 5 # guessed, but has negligible impact
-    TI = [5.5, 10.2, 35.8, 66.9, 125, 234, 598, 818, 1118, 1529, 3910, 5348] .* 1e-3 # s – measured from end to beginning of respective pulse (confirmed by Dr. Reynolds)
+    TI = [5.5, 10.2, 35.8, 66.9, 125, 234, 598, 818, 1118, 1529, 3910, 5348] .* 1e-3 # s; measured from end to beginning of respective pulse (confirmed by Dr. Reynolds)
     TD = 5 # s
-    TE = 10e-3 # s – guessed, but has negligible impact
+    TE = 10e-3 # s; guessed, but has negligible impact
 
     # simulate signal with an MT model
     # saturation pulse

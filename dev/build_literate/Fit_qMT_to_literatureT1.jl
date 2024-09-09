@@ -2,24 +2,17 @@ include("helper_functions.jl")
 
 include("T1_mapping_methods.jl")
 
-p = plot([0.55, 1.15], [0.55, 1.15], xlabel="T1 simulated", ylabel="T1 measured", legend=:topleft, label=:none)
+p = plot([0, 2], [0, 2], xlabel="simulated T1 (s)", ylabel="literature T1 (s)", legend=:topleft, label=:none, xlim=(0.5, 1.1), ylim=(0.5, 1.1))
 marker_list = [(seq_type_i == :IR) ? (:circle) : ((seq_type_i == :LL) ? (:cross) : ((seq_type_i == :vFA) ? (:diamond) : ((seq_type_i == :SR) ? (:dtriangle) : (:x)))) for seq_type_i in seq_type]
 
-fit_name = String[]
-fitted_param = NTuple{6, Float64}[]
-T1_simulated = Array{Float64}[]
-ΔAIC_v = Float64[]
-ΔBIC_v = Float64[]
-
 MT_model = Graham()
-push!(fit_name, "mono_exp")
 
 m0s = 0
 R1f = 1 / 1.084  # 1/s
-R2f = 1 / 0.0769 # 1/s
-Rx = 0           # 1/s
 R1s = R1f        # 1/s
+R2f = 1 / 0.0769 # 1/s
 T2s = 0
+Rx = 0           # 1/s
 ω0 = 0
 B1 = 1
 
@@ -33,22 +26,11 @@ function model(iseq, p)
 end
 
 fit_mono = curve_fit(model, 1:length(T1_literature), T1_literature, [R1f], x_tol=1e-3)
-push!(fitted_param, (m0s, fit_mono.param[1], R2f, Rx, R1s, T2s))
-push!(T1_simulated, model(1:length(T1_literature), fit_mono.param))
+T1_simulated = model(1:length(T1_literature), fit_mono.param)
 
-m0s
+T1f = 1/fit_mono.param[1] # s
 
-T1f_fitted = 1/fit_mono.param[1] # s
-
-1/R1s # s
-
-1/R2f # s
-
-T2s # s
-
-Rx # 1/s
-
-scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
+scatter!(p, T1_simulated, T1_literature, label="mono-exponential model", markershape=marker_list, hover=seq_name)
 
 n = length(T1_literature)
 
@@ -64,18 +46,14 @@ BIC_mono = n * log(RSS / n) + k * log(n)
 
 ΔBIC = n * log(RSS / n) + k * log(n) - BIC_mono
 
-push!(ΔAIC_v, ΔAIC)
-push!(ΔBIC_v, ΔBIC)
-
 MT_model = Graham()
-push!(fit_name, "unconstr_Graham")
 
 m0s = 0.25
 R1f = 1 / 1.84   # 1/s
 R1s = 1 / 0.34   # 1/s
-Rx = 13.6        # 1/s
 R2f = 1 / 0.0769 # 1/s
 T2s = 12.5e-6    # s
+Rx = 13.6        # 1/s
 ω0 = 0
 B1 = 1
 
@@ -89,22 +67,15 @@ function model(iseq, p)
 end
 
 fit_Graham = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f, R1s], x_tol=1e-3)
-push!(fitted_param, (fit_Graham.param[1], fit_Graham.param[2], R2f, Rx, fit_Graham.param[3], T2s))
-push!(T1_simulated, model(1:length(T1_literature), fit_Graham.param))
+T1_simulated = model(1:length(T1_literature), fit_Graham.param)
 
-m0s_fitted = fit_Graham.param[1]
+m0s = fit_Graham.param[1]
 
-T1f_fitted = 1/fit_Graham.param[2] # s
+T1f = 1/fit_Graham.param[2] # s
 
-T1s_fitted = 1/fit_Graham.param[3] # s
+T1s = 1/fit_Graham.param[3] # s
 
-1/R2f # s
-
-T2s # s
-
-Rx # 1/s
-
-scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
+scatter!(p, T1_simulated, T1_literature, label="Graham's model (unconstrained R₁ˢ)", markershape=marker_list, hover=seq_name)
 
 n = length(T1_literature)
 
@@ -116,18 +87,14 @@ RSS = norm(fit_Graham.resid)^2
 
 ΔBIC = n * log(RSS / n) + k * log(n) - BIC_mono
 
-push!(ΔAIC_v, ΔAIC)
-push!(ΔBIC_v, ΔBIC)
-
 MT_model = gBloch()
-push!(fit_name, "constr_gBloch")
 
 m0s = 0.139
 R1f = 1 / 1.084  # 1/s
-R2f = 1 / 0.0769 # 1/s
-Rx = 23          # 1/s
 R1s = 1          # 1/s
+R2f = 1 / 0.0769 # 1/s
 T2s = 12.5e-6    # s
+Rx = 23          # 1/s
 ω0 = 0
 B1 = 1
 
@@ -142,22 +109,13 @@ function model(iseq, p)
 end
 
 fit_constr = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f], x_tol=1e-3)
-push!(fitted_param, (fit_constr.param[1], fit_constr.param[2], R2f, Rx, fit_constr.param[2], T2s))
-push!(T1_simulated, model(1:length(T1_literature), fit_constr.param))
+T1_simulated = model(1:length(T1_literature), fit_constr.param)
 
-m0s_fitted = fit_constr.param[1]
+m0s = fit_constr.param[1]
 
-T1f_fitted = 1/fit_constr.param[2] # s
+T1f = 1/fit_constr.param[2] # s
 
-T1s_fitted = 1/fit_constr.param[2] # s
-
-1/R2f # s
-
-T2s # s
-
-Rx # 1/s
-
-scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
+scatter!(p, T1_simulated, T1_literature, label="generalized Bloch model (R₁ˢ = R₁ᶠ constraint)", markershape=marker_list, hover=seq_name)
 
 n = length(T1_literature)
 
@@ -169,18 +127,14 @@ RSS = norm(fit_constr.resid)^2
 
 ΔBIC = n * log(RSS / n) + k * log(n) - BIC_mono
 
-push!(ΔAIC_v, ΔAIC)
-push!(ΔBIC_v, ΔBIC)
-
 MT_model = gBloch()
-push!(fit_name, "unconstr_gBloch")
 
 m0s = 0.25
 R1f = 1 / 1.84   # 1/s
 R1s = 1 / 0.34   # 1/s
-Rx = 13.6        # 1/s
 R2f = 1 / 0.0769 # 1/s
 T2s = 12.5e-6    # s
+Rx = 13.6        # 1/s
 ω0 = 0
 B1 = 1
 
@@ -193,23 +147,16 @@ function model(iseq, p)
     return T1
 end
 
-fit_uncon = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f, R1s], x_tol=1e-3, show_trace=true)
-push!(fitted_param, (fit_uncon.param[1], fit_uncon.param[2], R2f, Rx, fit_uncon.param[3], T2s))
-push!(T1_simulated, model(1:length(T1_literature), fit_uncon.param))
+fit_uncon = curve_fit(model, 1:length(T1_literature), T1_literature, [m0s, R1f, R1s], x_tol=1e-3)
+T1_simulated = model(1:length(T1_literature), fit_uncon.param)
 
-m0s_fitted = fit_uncon.param[1]
+m0s = fit_uncon.param[1]
 
-T1f_fitted = 1/fit_uncon.param[2] # s
+T1f = 1/fit_uncon.param[2] # s
 
-T1s_fitted = 1/fit_uncon.param[3] # s
+T1s = 1/fit_uncon.param[3] # s
 
-1/R2f # s
-
-T2s # s
-
-Rx # 1/s
-
-scatter!(p, T1_simulated[end], T1_literature, label="$(fit_name[end]) model", markershape=marker_list, hover=seq_name)
+scatter!(p, T1_simulated, T1_literature, label="generalized Bloch model (unconstrained R₁ˢ)", markershape=marker_list, hover=seq_name)
 
 n = length(T1_literature)
 
@@ -220,9 +167,6 @@ RSS = norm(fit_uncon.resid)^2
 ΔAIC = n * log(RSS / n) + 2k - AIC_mono
 
 ΔBIC = n * log(RSS / n) + k * log(n) - BIC_mono
-
-push!(ΔAIC_v, ΔAIC)
-push!(ΔBIC_v, ΔBIC)
 
 extrema(T1_literature)
 

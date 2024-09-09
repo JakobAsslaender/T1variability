@@ -286,7 +286,7 @@ extrema(T1_literature)
 variation(T1_literature)
 
 # ### Median absolute deviation
-# In the paper, the median absolute deviation wrt. the mean value is used, as it is more robust to outliers compared to the mean absolute deviation or the standard deviation. Note, however, that the median absolute deviation of the mono-exponential fit is dominated by an outlier, artificially inflating the corresponding reduction.
+# In the paper, the median absolute deviation from the mean value is used, as it is more robust to outliers compared to the mean absolute deviation or the standard deviation. Note, however, that the median absolute deviation of the mono-exponential fit is dominated by an outlier, artificially inflating the corresponding reduction.
 
 # A mono-exponential model explains the following fraction of the T₁ variability in the literature:
 1 - mad(fit_mono.resid;   center=mean(fit_mono.resid))    / mad(T1_literature; center=mean(T1_literature))
@@ -334,7 +334,7 @@ write(io, "\n") #src
 
 for i_seq in eachindex(T1_literature) #src
     write(io, @sprintf("%1.3f ", T1_literature[i_seq])) #src
-    [write(io, @sprintf("%1.3f ", T1_simulated[i_fit][i_seq])) for i_fit in eachindex(T1_simulated)] #src
+    [write(io, @sprintf("%1.3f ", T1_simulated_v[i_fit][i_seq])) for i_fit in eachindex(T1_simulated_v)] #src
     write(io, @sprintf("%s ", string(seq_type[i_seq])[1])) #src
     write(io, "\n") #src
 end #src
@@ -358,11 +358,11 @@ println("model & \$T_1^s\$ constraint & \$\\Delta\$AIC & \$\\Delta\$BIC \\\\") #
 println("\\midrule") #src
 println("mono-exponential   & none            & 0           & 0           \\\\") #src
 i = findfirst(fit_name .== "unconstr_Graham") #src
-println(@sprintf("Graham's & none & %1.1f & %1.1f \\\\", ΔAIC[i], ΔBIC[i])) #src
+println(@sprintf("Graham's & none & %1.1f & %1.1f \\\\", ΔAIC_v[i], ΔBIC_v[i])) #src
 i = findfirst(fit_name .== "constr_gBloch") #src
-println(@sprintf("generalized Bloch & \$T_1^s = T_1^f\$ & %1.1f & %1.1f \\\\", ΔAIC[i], ΔBIC[i])) #src
+println(@sprintf("generalized Bloch & \$T_1^s = T_1^f\$ & %1.1f & %1.1f \\\\", ΔAIC_v[i], ΔBIC_v[i])) #src
 i = findfirst(fit_name .== "unconstr_gBloch") #src
-println(@sprintf("generalized Bloch & none & %1.1f & %1.1f \\\\", ΔAIC[i], ΔBIC[i])) #src
+println(@sprintf("generalized Bloch & none & %1.1f & %1.1f \\\\", ΔAIC_v[i], ΔBIC_v[i])) #src
 println("\\bottomrule") #src
 
 

@@ -59,7 +59,7 @@ const R2sl_2 = precompute_R2sl(TRF_min=10e-6, TRF_max=20e-6, ω1_max=π / 10e-6,
 const R2sl_3 = precompute_R2sl(TRF_max=1e-3, ω1_max=π / 500e-6, T2s_min=12e-6, T2s_max=13e-6, B1_max=1.1)[1]
 nothing #hide #md
 
-# We implemented different methods for the function `RF_pulse_propagator` that infered with Julia's multiple dispatch logic based on the type of the input parameters. The functions in this section take the variable `model` of type `gBloch` and implement the generalized Bloch model. The first method further takes the variable `ω1` of the abstract type `Number`, i.e., it implements pulse propagators for a constant ω₁.
+# We implemented different methods for the function `RF_pulse_propagator` that inferred with Julia's multiple dispatch logic based on the type of the input parameters. The functions in this section take the variable `model` of type `gBloch` and implement the generalized Bloch model. The first method further takes the variable `ω1` of the abstract type `Number`, i.e., it implements pulse propagators for a constant ω₁.
 function RF_pulse_propagator(ω1::Number, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::gBloch; spoiler=true)
     if TRF >= 1e-6 && TRF <= 3e-6
         R2s = R2sl_1(TRF, abs(ω1 * TRF), B1, T2s)

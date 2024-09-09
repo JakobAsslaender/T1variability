@@ -1,3 +1,5 @@
+version = "0.2"
+
 [deps]
 ApproxFun = "28f2ccd6-bb30-5033-b560-165f7b14dc2f"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"

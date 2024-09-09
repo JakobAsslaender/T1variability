@@ -51,7 +51,6 @@ makedocs(;
     authors="Jakob Asslaender <jakob.asslaender@nyumc.org> and contributors",
     sitename="T₁ variability",
     format=Documenter.HTML(;
-        inventory_version=0.1, # TODO
         prettyurls=get(ENV, "CI", "false") == "true",
         canonical="https://JakobAsslaender.github.io/T1variability",
         assets=String[],

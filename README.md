@@ -1,6 +1,7 @@
-| **Documentation**         | **T₁ Variability Paper**      |
-|:------------------------- |:------------------------------|
-| [![][docs-img]][docs-url] | [![][arXiv-img1]][arXiv-url1] |
+| **T₁ Variability Paper**      | **Corresponding Code**            |
+|:----------------------------- |:--------------------------------- |
+| [![][arXiv-img1]][arXiv-url1] | [![][docsv0.2-img]][docsv0.2-url] |
+| unpublished edits             | [![][docsdev-img]][docsdev-url]   |
 
 This code reproduces all results in the paper [Magnetization transfer explains most of the T1 variability in the MRI literature][arXiv-url1]. Please refer to the [Documentation][docs-url] for a detailed description of the code.
 
@@ -22,8 +23,11 @@ In order to run the simulations, place all five files in the same folder, `cd` i
 
 For a more interactive interface, the code can be called from Visual Studio Code with the Julia extension.
 
-[docs-img]: https://img.shields.io/badge/docs-dev-blue.svg
-[docs-url]: https://jakobasslaender.github.io/T1variability/dev/
+[docsdev-img]: https://img.shields.io/badge/docs-dev-blue.svg
+[docsdev-url]: https://jakobasslaender.github.io/T1variability/dev/
 
-[arXiv-img1]: https://img.shields.io/badge/arXiv-TODO-blue.svg
-[arXiv-url1]: https://arxiv.org/pdf/TODO.pdf
+[docsv0.2-img]: https://img.shields.io/badge/docs-v0.2-blue.svg
+[docsv0.2-url]: https://jakobasslaender.github.io/T1variability/v0.2/
+
+[arXiv-img1]: https://img.shields.io/badge/arXiv-2409.05318-blue.svg
+[arXiv-url1]: https://arxiv.org/pdf/2409.05318v1

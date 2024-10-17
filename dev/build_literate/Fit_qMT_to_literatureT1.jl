@@ -217,6 +217,8 @@ variation(T1_literature)
 
 1 - mad(fit_Graham.resid; center=mean(fit_Graham.resid)) / mad(T1_literature; center=mean(T1_literature))
 
+1 - mad(fit_Sled.resid; center=mean(fit_Sled.resid)) / mad(T1_literature; center=mean(T1_literature))
+
 1 - mad(fit_constr.resid; center=mean(fit_constr.resid)) / mad(T1_literature; center=mean(T1_literature))
 
 1 - mad(fit_uncon.resid; center=mean(fit_uncon.resid)) / mad(T1_literature; center=mean(T1_literature))
@@ -225,6 +227,8 @@ variation(T1_literature)
 
 1 - mean(abs.(fit_Graham.resid .- mean(fit_Graham.resid))) / mean(abs.(T1_literature .- mean(T1_literature)))
 
+1 - mean(abs.(fit_Sled.resid .- mean(fit_Sled.resid))) / mean(abs.(T1_literature .- mean(T1_literature)))
+
 1 - mean(abs.(fit_constr.resid .- mean(fit_constr.resid))) / mean(abs.(T1_literature .- mean(T1_literature)))
 
 1 - mean(abs.(fit_uncon.resid .- mean(fit_uncon.resid))) / mean(abs.(T1_literature .- mean(T1_literature)))
@@ -232,6 +236,8 @@ variation(T1_literature)
 1 - std(fit_mono.resid) / std(T1_literature)
 
 1 - std(fit_Graham.resid) / std(T1_literature)
+
+1 - std(fit_Sled.resid) / std(T1_literature)
 
 1 - std(fit_constr.resid) / std(T1_literature)
 

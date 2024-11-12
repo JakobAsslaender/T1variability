@@ -219,7 +219,7 @@ nothing #hide #md
 #src Standard Siemen parameters:
 #src TRF = 10.24e-3 s
 #src β = 674.1 shape parameter in 1/s
-#src μ = 5 shape parameter in rad
+#src μ = 5 shape parameter (dimensionless)
 #src ω₁ᵐᵃˣ = 4965.910769033364 rad/s – scaled such that the integral over the real part of the pulse (real(ω1 * exp(1im * φ))) equates to 2π
 function sech_inversion_pulse(; TRF=10.24e-3, ω₁ᵐᵃˣ=4965.910769033364, μ=5, β=674.1)
     ω1(t) = ω₁ᵐᵃˣ * sech(β * (t - TRF / 2)) # rad/s

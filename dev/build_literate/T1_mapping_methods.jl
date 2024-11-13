@@ -612,7 +612,7 @@ function calculate_T1_MP2RAGE(m0s, R1f, R2f, Rx, R1s, T2s)
         s1 = sin(α[1]) * ((-eff_inv * mzss * EA + (1 - EA)) * (cos(α[1]) * E1)^(Nz / 2 - 1) + (1 - E1) * (1 - (cos(α[1]) * E1)^(Nz / 2 - 1)) / (1 - cos(α[1]) * E1))
         s2 = sin(α[2]) * ((mzss - (1 - EC)) / (EC * (cos(α[2]) * E1)^(Nz / 2)) - (1 - E1) * ((cos(α[2]) * E1)^(-Nz / 2) - 1) / (1 - cos(α[2]) * E1))
 
-        sm = s1' * s2 / (abs(s1)^2 + abs(s2^2))
+        sm = s1' * s2 / (abs(s1)^2 + abs(s2)^2)
         return sm
     end
 

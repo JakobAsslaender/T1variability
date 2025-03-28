@@ -1,7 +1,7 @@
-| **T₁ Variability Paper**      | **Corresponding Code**            |
-|:----------------------------- |:--------------------------------- |
-| [![][arXiv-img1]][arXiv-url1] | [![][docsv1.0-img]][docsv1.0-url] |
-| unpublished edits             | [![][docsdev-img]][docsdev-url]   |
+| **T₁ Variability Paper**                                | **Corresponding Code**            |
+|:------------------------------------------------------- |:--------------------------------- |
+| [![][MRM-img1]][MRM-url1] [![][arXiv-img1]][arXiv-url1] | [![][docsv1.0-img]][docsv1.0-url] |
+| unpublished edits                                       | [![][docsdev-img]][docsdev-url]   |
 
 This code reproduces all results in the paper [Magnetization transfer explains most of the T1 variability in the MRI literature][arXiv-url1]. Please refer to the [Documentation][docs-url] for a detailed description of the code.
 
@@ -31,3 +31,6 @@ For a more interactive interface, the code can be called from Visual Studio Code
 
 [arXiv-img1]: https://img.shields.io/badge/arXiv-2409.05318-blue.svg
 [arXiv-url1]: https://arxiv.org/pdf/2409.05318v1
+
+[MRM-img1]: https://img.shields.io/badge/doi-10.1002/mrm.30451-blue.svg
+[MRM-url1]: https://doi.org/10.1002/mrm.30451

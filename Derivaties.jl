@@ -5,6 +5,7 @@ using DataFrames
 using CSV
 using MixedModels
 using StatsPlots
+using Printf
 plotlyjs(bg=RGBA(31 / 255, 36 / 255, 36 / 255, 1.0), ticks=:native, size=(800, 1000))
 MT_model = gBloch()
 calculate_jacobian = false
@@ -88,20 +89,20 @@ _x = Float64.(map(x -> findfirst(isequal(x), unique(df.ROI)), df.ROI))
 _x .+= (map(x -> findfirst(isequal(x), sort(unique(df.seq_type))), df.seq_type) .- 3) ./ 8
 
 pall = similar(j, Plots.Plot)
-ymax = maximum([maximum(abs.(df[!, j[i]] .* df[!, p[i]])) for i ∈ eachindex(j)]) * 1.1
+ymax = maximum([maximum(abs.(df[!, j[i]] .* mean(df[!, p[i]]))) for i ∈ eachindex(j)]) * 1.1
 
 for id ∈ eachindex(j)
-    pall[id] = scatter(_x, abs.(df[!, j[id]] .* df[!, p[id]]),
+    pall[id] = scatter(_x, abs.(df[!, j[id]] .* mean(df[!, p[id]])),
         group=df.seq_type,
         hover=df.seq_name,
         xticks=id == length(j) ? (1:9, String.(unique(df.ROI))) : (1:9, ["" for _ ∈ 1:9]),
         ylim=(0, ymax),
-        ylabel="$(j[id]) ⋅ $(p[id])",
-        # title=id == 1 ? "all ROIs" : "",
+        ylabel="|$(j[id]) ⋅ m($(p[id]))| (s)",
         legend_position=:outerbottomright,
     )
 end
 plt = plot(pall..., layout=(6, 1))
+
 
 ## plot d(q)
 d = :dT1dT1f
@@ -110,55 +111,87 @@ scatter(df[!, q], df[!, d], group=df.seq_type, hover=df.seq_name, xlabel=string(
 
 
 ## Linear Mixed model
-for id ∈ eachindex(j)
-    d = j[id]
-    df.d = df[!, d]
+str_contributions = ""
+str_contributions_tex = "\$\\partial T_1/\\partial p_i^\\text{MT}\$ & \$\\mu(\\frac{\\partial T_1}{\\partial p_i^\\text{MT}}) \\cdot \\mu(p_i^\\text{MT})\$ & \$\\sigma(\\frac{\\partial T_1}{\\partial p_i^\\text{MT}}) / \\mu(\\frac{\\partial T_1}{\\partial p_i^\\text{MT}})\$ & \$R^2_\\text{fixed}\$ & \$R^2_\\text{ROI}\$ & \$R^2_\\text{seq. type}\$ & \$R^2_\\text{seq. name}\$ & \$R^2_\\text{full}\$ & \$m_0^s = 0\$ \\\\"
 
-    # frm = @formula(d ~ 1 + m0s + T1f + T2f + Tex + T1s + T2s + (1 | seq_type / seq_name) + (1 | ROI))
-    frm = @formula(d ~ 1 + m0s + T1f + (1 | seq_type / seq_name) + (1 | ROI))
-    model = fit(MixedModel, frm, df)
+str_fixed = ""
+str_fixed_tex = ""
+j_tex = ["\$\\partial T_1 / \\partial m_0^s\$", "\$\\partial T_1 / \\partial T_1^f\$", "\$\\partial T_1 / \\partial T_2^f\$", "\$\\partial T_1 / \\partial T_\\text{x}\$", "\$\\partial T_1 / \\partial T_1^s\$", "\$\\partial T_1 / \\partial T_2^s\$"]
+
+
+for id ∈ eachindex(j)
+    # mj = abs(mean(df[!, j[id]] .* df[!, p[id]])) #! normalized per data point
+    mj = abs(mean(df[!, j[id]]) * mean(df[!, p[id]])) #! normalized separately
+    cv = abs(std(df[!, j[id]]) / mean(df[!, j[id]]))
+
+    # frm = @formula(derivative ~ 1 + m0s + T1f + T2f + Tex + T1s + T2s + (1 | seq_type / seq_name) + (1 | ROI))
+    frm = @formula(derivative ~ 1 + m0s + T1f + T2f + Tex + T1s + T2s + (1 | seq_type) + (1 | seq_name) + (1 | ROI))
+    model = fit(MixedModel, term(j[id]) ~ frm.rhs, df)
     # @info model
 
+    pred = sum(param -> model.βs[param] .* df[!, param], Symbol.(frm.rhs[collect(typeof.(frm.rhs) .== Term)]))
+    σ²_fixed = var(pred; corrected=false)
+
+    σ²_ROI = model.σs[:ROI][1]^2
+    σ²_seqname = model.σs[:seq_name][1]^2
+    σ²_seqtype = model.σs[:seq_type][1]^2
+    σ²_ϵ = model.σ^2
+    σ²_all = σ²_fixed + σ²_ROI + σ²_seqtype + σ²_seqname + σ²_ϵ
+
+    r²_fixed = σ²_fixed / σ²_all
+    r²_ROI = σ²_ROI / σ²_all
+    r²_seqname = σ²_seqname / σ²_all
+    r²_seqtype = σ²_seqtype / σ²_all
+    r²_full = (σ²_fixed + σ²_ROI + σ²_seqtype + σ²_seqname) / σ²_all
+
     fe = fixef(model)
-    re = ranef(model)
+    m0s_intercept = fe[1] + mean(df.T1f) * fe[3] + mean(df.T2f) * fe[4] + mean(df.Tex) * fe[5] + mean(df.T1s) * fe[6] + mean(df.T2s) * fe[7]
 
-    # pred = fe[1] .+ df.m0s * fe[2] .+ df.T1f * fe[3] .+ df.T2f * fe[4] .+ df.Tex * fe[5] .+ df.T1s * fe[6] .+ df.T2s * fe[7]
-    pred = fill(fe[1], size(df, 1))
-    for iparam ∈ 2:length(frm.rhs)
-        if typeof(frm).parameters[2].parameters[iparam] == Term
-            pred .+= fe[iparam] .* df[!, Symbol(frm.rhs[iparam])]
-        end
-    end
+    str_contributions *= @sprintf("%s: mean_j = %.3f; CoV = %.3f; r²_fixed = %.3f; r²_ROI = %.3f; r²_seqtype = %.3f; r²_seqname = %.3f; r²_full = %.3f; \n", j[id], mj, cv, r²_fixed, r²_ROI, r²_seqtype, r²_seqname, r²_full)
+    str_contributions_tex *= @sprintf("%s & %.3f & %.3f & %.3f & %.3f & %.3f & %.3f & %.3f \\\\ \n", j_tex[id], mj, cv, r²_fixed, r²_ROI, r²_seqtype, r²_seqname, r²_full)
 
-    r2_fixed = (cov(pred, df[!, :d]) / (std(pred) * std(df[!, :d])))^2
 
-    pred = fe[1] .+ re[1][get.(Ref(Dict(x => i for (i, x) in pairs(unique(df.seq_name)))), df.seq_name, missing)]
-    r2_seq_name = (cov(pred, df[!, :d]) / (std(pred) * std(df[!, :d])))^2
+    # r²_m0s = var(model.βs[:m0s] .* m0s, corrected=false) / σ²_all
+    # r²_T1f = var(model.βs[:T1f] .* T1f, corrected=false) / σ²_all
+    # r²_T2f = var(model.βs[:T2f] .* T2f, corrected=false) / σ²_all
+    # r²_Tex = var(model.βs[:Tex] .* Tex, corrected=false) / σ²_all
+    # r²_T1s = var(model.βs[:T1s] .* T1s, corrected=false) / σ²_all
+    # r²_T2s = var(model.βs[:T2s] .* T2s, corrected=false) / σ²_all
 
-    pred = fe[1] .+ re[2][get.(Ref(Dict(x => i for (i, x) in pairs(unique(df.ROI)))), df.ROI, missing)]
-    r2_ROI = (cov(pred, df[!, :d]) / (std(pred) * std(df[!, :d])))^2
+    # str_fixed *= @sprintf("%s; %.3f; %.3f; %.3f; %.3f; %.3f; %.3f; %.3f \\\\ \n", j[id], r²_m0s, r²_T1f, r²_T2f, r²_Tex, r²_T1s, r²_T2s, m0s_intercept)
+    # str_fixed_tex *= @sprintf("%s & %.3f & %.3f & %.3f & %.3f & %.3f & %.3f & %.3f \\\\ \n", j_tex[id], r²_m0s, r²_T1f, r²_T2f, r²_Tex, r²_T1s, r²_T2s, m0s_intercept)
 
-    pred = fe[1] .+ re[3][get.(Ref(Dict(x => i for (i, x) in pairs(unique(df.seq_type)))), df.seq_type, missing)]
-    r2_seq_type = (cov(pred, df[!, :d]) / (std(pred) * std(df[!, :d])))^2
-
-    pred = predict(model)
-    r2_full = (cov(pred, df[!, :d]) / (std(pred) * std(df[!, :d])))^2
-
-    @printf("%s: r2_fixed = %.3f; r2_seq_type = %.3f; r2_seq_name = %.3f; r2_ROI = %.3f; r2_full = %.3f \n", d, r2_fixed, r2_seq_type, r2_seq_name, r2_ROI, r2_full)
 
     # Plot: observed vs full-model prediction
     dlim = maximum(df[!, :d]) - minimum(df[!, :d])
     xlim = (minimum(df[!, :d]) - 0.15dlim, maximum(df[!, :d]) + 0.15dlim)
     ylim = xlim
 
-    scatter(df.d, pred, group=df.seq_type, hover=df.seq_name,
+    scatter(df[!, j[id]], pred, group=df.seq_type, hover=df.seq_name,
         xlabel="Observed d", ylabel="Predicted d",
-        title=string(d),
+        title=string(j[id]),
         legend_position=:bottomright; xlim, ylim)
 
     plot!([xlim...], [xlim...], label="Ideal", lc=:white, ls=:dash)
     display(current())
 end
+
+
+println(str_contributions)
+println(str_fixed)
+# println(str_contributions_tex)
+# println(str_fixed_tex)
+
+## Export CSV for plotting in latex
+_df = deepcopy(df)
+_df.x = _x
+_df.color = map(x -> findfirst(isequal(x), sort(unique(df.seq_type))), df.seq_type)
+
+for id ∈ eachindex(j)
+    _df[!, j[id]] = abs.(df[!, j[id]] .* mean(df[!, p[id]]))
+end
+
+CSV.write(expanduser("~/Documents/Paper/2025_T1sensitivity/Figures/derivatives/jacobian.csv"), _df)
 
 
 

@@ -2,6 +2,7 @@ include("helper_functions.jl")
 include("T1_mapping_methods.jl")
 using FiniteDifferences
 using DataFrames
+using CategoricalArrays
 using CSV
 using MixedModels
 using StatsPlots
@@ -27,12 +28,11 @@ B1 = 1
 p = [:m0s, :T1f, :T2f, :Tex, :T1s, :T2s]
 j = [:dT1dm0s, :dT1dT1f, :dT1dT2f, :dT1dTex, :dT1dT1s, :dT1dT2s]
 
+Nrows = length(ROI) * length(T1_functions)
 
 ##
 if calculate_jacobian
-    Nrows = length(ROI) * length(T1_functions)
     df = DataFrame(
-        seq_id=Vector{Int}(undef, Nrows),
         seq_name=Vector{String}(undef, Nrows),
         seq_type=Vector{Symbol}(undef, Nrows),
         ROI=Vector{Symbol}(undef, Nrows),
@@ -58,7 +58,6 @@ if calculate_jacobian
 
             j = jacobian(central_fdm(5, 1), p -> T1_functions[iseq](p[1], 1 / p[2], 1 / p[3], 1 / p[4], 1 / p[5], 1e-6p[6]), _p)[1]
 
-            df[idx, :seq_id] = iseq
             df[idx, :seq_name] = seq_name[iseq]
             df[idx, :seq_type] = seq_type[iseq]
             df[idx, :ROI] = ROI[iROI]
@@ -122,16 +121,30 @@ str_fixed_model = ""
 str_fixed_model_tex = ""
 j_tex = ["\$\\partial T_1 / \\partial m_0^s\$", "\$\\partial T_1 / \\partial T_1^f\$", "\$\\partial T_1 / \\partial T_2^f\$", "\$\\partial T_1 / \\partial T_\\text{x}\$", "\$\\partial T_1 / \\partial T_1^s\$", "\$\\partial T_1 / \\partial T_2^s\$"]
 
+df_pred = DataFrame(
+    dT1dm0s_observe=Vector{Float64}(undef, Nrows),
+    dT1dT1f_observe=Vector{Float64}(undef, Nrows),
+    dT1dT2f_observe=Vector{Float64}(undef, Nrows),
+    dT1dTex_observe=Vector{Float64}(undef, Nrows),
+    dT1dT1s_observe=Vector{Float64}(undef, Nrows),
+    dT1dT2s_observe=Vector{Float64}(undef, Nrows),
+    dT1dm0s_predict=Vector{Float64}(undef, Nrows),
+    dT1dT1f_predict=Vector{Float64}(undef, Nrows),
+    dT1dT2f_predict=Vector{Float64}(undef, Nrows),
+    dT1dTex_predict=Vector{Float64}(undef, Nrows),
+    dT1dT1s_predict=Vector{Float64}(undef, Nrows),
+    dT1dT2s_predict=Vector{Float64}(undef, Nrows),
+    color=Vector{Int}(undef, Nrows),
+    ROI=Vector{Symbol}(undef, Nrows),
+)
 
 for id ∈ eachindex(j)
-    # mj = abs(mean(df[!, j[id]] .* df[!, p[id]])) #! normalized per data point
-    mj = abs(mean(df[!, j[id]]) * mean(df[!, p[id]])) #! normalized separately
+    μⱼ = abs(mean(df[!, j[id]]) * mean(df[!, p[id]]))
     cv = abs(std(df[!, j[id]]) / mean(df[!, j[id]]))
 
     # frm = @formula(derivative ~ 1 + m0s + T1f + T2f + Tex + T1s + T2s + (1 | seq_type / seq_name) + (1 | ROI))
     frm = @formula(derivative ~ 1 + m0s + T1f + T2f + Tex + T1s + T2s + (1 | seq_type) + (1 | seq_name) + (1 | ROI))
     model = fit(MixedModel, term(j[id]) ~ frm.rhs, df)
-    # @info model
 
     pred = sum(param -> model.βs[param] .* df[!, param], Symbol.(frm.rhs[collect(typeof.(frm.rhs) .== Term)]))
     σ²_fixed = var(pred; corrected=false)
@@ -151,29 +164,39 @@ for id ∈ eachindex(j)
     fe = fixef(model)
     m0s_intercept = fe[1] + mean(df.T1f) * fe[3] + mean(df.T2f) * fe[4] + mean(df.Tex) * fe[5] + mean(df.T1s) * fe[6] + mean(df.T2s) * fe[7]
 
-    str_r2 *= @sprintf("%s: mean_j = %.3f; CoV = %.3f; r²_fixed = %.3f; r²_ROI = %.3f; r²_seqtype = %.3f; r²_seqname = %.3f; r²_full = %.3f; \n", j[id], mj, cv, r²_fixed, r²_ROI, r²_seqtype, r²_seqname, r²_full)
-    str_r2_tex *= @sprintf("%s & %.3f & %.3f & %.3f & %.3f & %.3f & %.3f & %.3f \\\\ \n", j_tex[id], mj, cv, r²_fixed, r²_ROI, r²_seqtype, r²_seqname, r²_full)
+    str_r2 *= @sprintf("%s: mean_j = %.2f; CoV = %.2f; r²_fixed = %.2f; r²_ROI = %.2f; r²_seqtype = %.2f; r²_seqname = %.2f; r²_full = %.2f; \n", j[id], μⱼ, cv, r²_fixed, r²_ROI, r²_seqtype, r²_seqname, r²_full)
+    str_r2_tex *= @sprintf("%s & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f \\\\ \n", j_tex[id], μⱼ, cv, r²_fixed, r²_ROI, r²_seqtype, r²_seqname, r²_full)
 
-    Δr² = shapley_regression(df, j[id], p)
-    str_fixed_r2 *= @sprintf("%s: %.3f; %.3f; %.3f; %.3f; %.3f; %.3f; %.3f \\\\ \n", j[id], Δr²..., sum(Δr²))
-    str_fixed_r2_tex *= @sprintf("%s & %.3f & %.3f & %.3f & %.3f & %.3f & %.3f \\\\ \n", j_tex[id], Δr²...)
+    Δr² = @time shapley_regression(df, j[id], p)
+    str_fixed_r2 *= @sprintf("%s: %.2f; %.2f; %.2f; %.2f; %.2f; %.2f; %.2f \n", j[id], Δr²..., sum(Δr²))
+    str_fixed_r2_tex *= @sprintf("%s & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f \\\\ \n", j_tex[id], Δr²...)
 
-    str_fixed_model *= @sprintf("%s: %.3f; %.3f; %.3f; %.3f; %.3f; %.3f; %.3f; %.3f \\\\ \n", j[id], fe..., m0s_intercept)
-    str_fixed_model_tex *= @sprintf("%s & %.3f & %.3f & %.3f & %.3f & %.3f & %.3f & %.3f & %.3f \\\\ \n", j_tex[id], fe..., m0s_intercept)
-
+    str_fixed_model *= @sprintf("%s: %.2f; %.2f; %.2f; %.2f; %.2f; %.2f; %.2f; %.2f \n", j[id], fe..., m0s_intercept)
+    str_fixed_model_tex *= @sprintf("%s & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f \\\\ \n", j_tex[id], fe..., m0s_intercept)
 
     # Plot: observed vs full-model prediction
     dlim = maximum(df[!, j[id]]) - minimum(df[!, j[id]])
     xlim = (minimum(df[!, j[id]]) - 0.15dlim, maximum(df[!, j[id]]) + 0.15dlim)
     ylim = xlim
 
-    scatter(df[!, j[id]], pred, group=df.seq_type, hover=df.seq_name,
-        xlabel="Observed d", ylabel="Predicted d",
-        title=string(j[id]),
+    available_markers = [:circle, :rect, :diamond, :hexagon, :cross, :xcross, :utriangle, :x, :dtriangle]
+    unique_ROI = unique(df.ROI)
+    label_to_marker = Dict(label => available_markers[i] for (i, label) in enumerate(unique_ROI))
+    markers = [label_to_marker[label] for label in df.ROI]
+
+    scatter(df[!, j[id]], predict(model), group=df.seq_type, hover=df.seq_name .* df.ROI, m=markers,
+        xlabel="Observed $(j[id])", ylabel="Predicted $(j[id])",
+        size=(600, 600),
         legend_position=:bottomright; xlim, ylim)
 
     plot!([xlim...], [xlim...], label="Ideal", lc=:white, ls=:dash)
     display(current())
+
+    # write in df
+    df_pred[!, String(j[id]) * "_observe"] = df[!, j[id]]
+    df_pred[!, String(j[id]) * "_predict"] = predict(model)
+    df_pred[!, :ROI] = df[!, :ROI]
+    df_pred[!, :color] = levelcode.(CategoricalArray(df[!, :seq_type]))
 end
 
 println(str_r2)
@@ -195,3 +218,5 @@ for id ∈ eachindex(j)
 end
 
 CSV.write(expanduser("~/Documents/Paper/2025_T1sensitivity/Figures/derivatives/jacobian.csv"), _df)
+
+CSV.write(expanduser("~/Documents/Paper/2025_T1sensitivity/Figures/mixed_model/mixed_model.csv"), df_pred)

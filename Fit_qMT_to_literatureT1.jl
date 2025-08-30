@@ -21,12 +21,12 @@ nothing #hide #md
 #src #########################################################
 # ## Mono-exponential model
 #src #########################################################
-# We simulate the mono-exponential model as an MT model with a vanishing semi-solid spin pool. In this case, the underlying MT model is irrelevant and we choose Graham's model for speed purposes:
+# We simulate the mono-exponential model as an MT model with a vanishing semi-solid spin pool. In this case, the underlying MT model is irrelevant, and we choose Graham's model for speed purposes:
 MT_model = Graham()
 push!(fit_name, "mono_exp") #src
 nothing #hide #md
 
-# The following parameters are hard-coded with the exception of `R1f`, which serves as an initialization for the global fit.
+# The following parameters are hard-coded, except for `R1f`, which serves as an initialization for the global fit.
 m0s = 0
 R1f = 1 / 1.084  # 1/s
 R1s = R1f        # 1/s
@@ -55,9 +55,9 @@ push!(fitted_param, (m0s, fit_mono.param[1], R2f, Rx, R1s, T2s)) #src
 push!(T1_simulated_v, T1_simulated) #src
 nothing #hide #md
 
-# For this model, the single fitted global of parameter is:
+# For this model, the single fitted global parameter is:
 T1f = 1 / fit_mono.param[1] # s
-# The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
+# The following plot visualizes the quality of the fit and replicates Fig. 1 in the manuscript:
 scatter!(p, T1_simulated, T1_literature, label="mono-exponential model", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
 
@@ -73,7 +73,7 @@ RSS = norm(fit_mono.resid)^2
 AIC_mono = n * log(RSS / n) + 2k
 #-
 BIC_mono = n * log(RSS / n) + k * log(n)
-# In this case, `ΔAIC` is per definition zero:
+# In this case, `ΔAIC` is by definition zero:
 ΔAIC = n * log(RSS / n) + 2k - AIC_mono
 # as is `ΔBIC`:
 ΔBIC = n * log(RSS / n) + k * log(n) - BIC_mono
@@ -88,7 +88,7 @@ MT_model = Graham()
 push!(fit_name, "unconstr_Graham") #src
 nothing #hide #md
 
-# The following parameters are hard-coded with the exception of `m0s`, `R1f`, and `R1s`, which serve as an initialization for the global fit.
+# The following parameters are hard-coded, except for `m0s`, `R1f`, and `R1s`, which serve as an initialization for the global fit.
 m0s = 0.25
 R1f = 1 / 1.84   # 1/s
 R1s = 1 / 0.34   # 1/s
@@ -123,11 +123,11 @@ m0s = fit_Graham.param[1]
 T1f = 1 / fit_Graham.param[2] # s
 #-
 T1s = 1 / fit_Graham.param[3] # s
-# The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
+# The following plot visualizes the quality of the fit and replicates Fig. 1 in the manuscript:
 scatter!(p, T1_simulated, T1_literature, label="Graham's model (unconstrained R₁ˢ)", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
 
-# Note that clicking on a  legend entry removes the fit from the plot. A double click on an entry selects only this particular fit.
+# Note that clicking on a legend entry removes the fit from the plot. A double click on an entry selects only this particular fit.
 
 # ### Akaike (AIC) and Bayesian (BIC) information criteria
 # The information criteria depend on the number of measurements `n`, the number of parameters `k`, and the squared sum of the residuals `RSS`:
@@ -153,7 +153,7 @@ MT_model = Sled()
 push!(fit_name, "unconstr_Sled") #src
 nothing #hide #md
 
-# The following parameters are hard-coded with the exception of `m0s`, `R1f`, and `R1s`, which serve as an initialization for the global fit.
+# The following parameters are hard-coded, except for `m0s`, `R1f`, and `R1s`, which serve as an initialization for the global fit.
 m0s = 0.25
 R1f = 1 / 1.84   # 1/s
 R1s = 1 / 0.34   # 1/s
@@ -188,11 +188,11 @@ m0s = fit_Sled.param[1]
 T1f = 1 / fit_Sled.param[2] # s
 #-
 T1s = 1 / fit_Sled.param[3] # s
-# The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
+# The following plot visualizes the quality of the fit and replicates Fig. 1 in the manuscript:
 scatter!(p, T1_simulated, T1_literature, label="Sled's model (unconstrained R₁ˢ)", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
 
-# Note that clicking on a  legend entry removes the fit from the plot. A double click on an entry selects only this particular fit.
+# Note that clicking on a legend entry removes the fit from the plot. A double click on an entry selects only this particular fit.
 
 # ### Akaike (AIC) and Bayesian (BIC) information criteria
 # The information criteria depend on the number of measurements `n`, the number of parameters `k`, and the squared sum of the residuals `RSS`:
@@ -218,7 +218,7 @@ MT_model = gBloch()
 push!(fit_name, "constr_gBloch") #src
 nothing #hide #md
 
-# The following parameters are hard-coded with the exception of `m0s`, and `R1f`, which serve as an initialization for the global fit.
+# The following parameters are hard-coded, except for `m0s` and `R1f`, which serve as an initialization for the global fit.
 m0s = 0.139
 R1f = 1 / 1.084  # 1/s
 R1s = 1          # 1/s
@@ -252,11 +252,11 @@ nothing #hide #md
 m0s = fit_constr.param[1]
 #-
 T1f = 1 / fit_constr.param[2] # s
-# The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
+# The following plot visualizes the quality of the fit and replicates Fig. 1 in the manuscript:
 scatter!(p, T1_simulated, T1_literature, label="generalized Bloch model (R₁ˢ = R₁ᶠ constraint)", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
 
-# Note that clicking on a  legend entry removes the fit from the plot. A double click on an entry selects only this particular fit.
+# Note that clicking on a legend entry removes the fit from the plot. A double click on an entry selects only this particular fit.
 
 # ### Akaike (AIC) and Bayesian (BIC) information criteria
 # The information criteria depend on the number of measurements `n`, the number of parameters `k`, and the squared sum of the residuals `RSS`:
@@ -282,7 +282,7 @@ MT_model = gBloch()
 push!(fit_name, "unconstr_gBloch") #src
 nothing #hide #md
 
-# The following parameters are hard-coded with the exception of `m0s`, `R1f`, and `R1s`, which serve as an initialization for the global fit.
+# The following parameters are hard-coded, except for `m0s`, `R1f`, and `R1s`, which serve as an initialization for the global fit.
 m0s = 0.25
 R1f = 1 / 1.84   # 1/s
 R1s = 1 / 0.34   # 1/s
@@ -317,11 +317,11 @@ m0s = fit_uncon.param[1]
 T1f = 1 / fit_uncon.param[2] # s
 #-
 T1s = 1 / fit_uncon.param[3] # s
-# The following plot visualizes the quality of the fit an replicates Fig. 1 in the manuscript:
+# The following plot visualizes the quality of the fit and replicates Fig. 1 in the manuscript:
 scatter!(p, T1_simulated, T1_literature, label="generalized Bloch model (unconstrained R₁ˢ)", markershape=marker_list, hover=seq_name)
 #md Main.HTMLPlot(p) #hide
 
-# Note that clicking on a  legend entry removes the fit from the plot. A double click on an entry selects only this particular fit.
+# Note that clicking on a legend entry removes the fit from the plot. A double click on an entry selects only this particular fit.
 
 # ### Akaike (AIC) and Bayesian (BIC) information criteria
 # The information criteria depend on the number of measurements `n`, the number of parameters `k`, and the squared sum of the residuals `RSS`:

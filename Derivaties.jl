@@ -71,7 +71,7 @@ if calculate_jacobian
         Threads.@threads for iseq ∈ eachindex(T1_functions)
             df_idx = iseq + length(T1_functions) * (iROI - 1)
 
-            ## T following line performs the actual computation of the derivatives.
+            ## The following line performs the actual computation of the derivatives.
             ## `T1_functions` takes the rates of several MT parameters, so we have to call it with `1/T`.
             ## `T₂ˢ` is rescaled to ensure stability of the finite difference algorithm.
             j = jacobian(central_fdm(5, 1), p -> T1_functions[iseq](p[1], 1 / p[2], 1 / p[3], 1 / p[4], 1 / p[5], 1e-6p[6]), _p)[1]
@@ -100,7 +100,7 @@ end
 show(df; allrows=false, allcols=true)
 
 # ## Figure 1
-# Fig. 1 is a scatter plot and `_x` ensure the desired aligment along the x-axis and `ymax` ensures a uniform scaling of the plot:
+# Fig. 1 is a scatter plot and `_x` ensures the desired alignment along the x-axis and `ymax` ensures a uniform scaling of the plot:
 _x = Float64.(map(x -> findfirst(isequal(x), unique(df.ROI)), df.ROI))
 _x .+= (map(x -> findfirst(isequal(x), sort(unique(df.seq_type))), df.seq_type) .- 3) ./ 8
 ymax = maximum([maximum(abs.(df[!, j[i]] .* mean(df[!, p[i]]))) for i ∈ eachindex(j)]) * 1.1
@@ -126,7 +126,7 @@ plt = plot(pall..., layout=(6, 1), size=(800, 1500))
 
 
 # ## Linear Mixed model
-# First, we initialize a few empty `DataFrame` objects that are filled int the for-loop.
+# First, we initialize a few empty `DataFrame` objects that are filled in the for-loop.
 df_pred = DataFrame(
     dT1odm0s_observe=Vector{Float64}(undef, Nrows),
     dT1odT1f_observe=Vector{Float64}(undef, Nrows),
@@ -233,7 +233,7 @@ for id ∈ eachindex(j)
         title = j[id],
         xlabel=id ∈ [5,6] ? "Observed" : "",
         ylabel=id ∈ [1,3,5] ? "Predicted" : "",
-        legend=:none,
+        legend_position=:outerbottomright,
         xlim,
         ylim=xlim
     )
@@ -246,24 +246,24 @@ for id ∈ eachindex(j)
     df_pred[!, :color] = levelcode.(CategoricalArray(df[!, :seq_type])) #src
 end
 
-# ## Table 1:
+# ## Table 1
 # Print the results of the mixed effects model fit:
 r2
 # This table corresponds to Tab. 1 in the [paper](https://arxiv.org/pdf/TODO). The column `μ(∂T₁ᵒ/∂pᵢᴹᵀ) ⋅ μ(pᵢᴹᵀ)` denotes the mean derivative, normalized by the average parameter, and serves as a measure for the sensitivity of `T₁ᵒ` to the respective parameter. The column `σ(∂T₁ᵒ/∂pᵢᴹᵀ) / μ(∂T₁ᵒ/∂pᵢᴹᵀ)` denotes the coefficient of variation. The coefficients of determination for the full model `R^2(full)` is dissected into its components: `R^2(full) = R²(fixed) + R^2(ROI) + R^2(seq. type) + R^2(ind. seq)`, where `R²(fixed)` captures all fixed effects, that is, the degree to which variations of the `pᵢᴹᵀ` between the ROIs explain the derivatives' variability. `R^2(ROI)` captures the ROI-identifier as a random variable, potentially modeling inter-ROI variations not captured by the linear model of `pᵢᴹᵀ`. `R^2(seq. type)` captures the degree to which the sequence type, that is, the groups inversion-recovery, Look-Locker, saturation-recovery, variable flip angle, and MP²RAGE, explains variability of the derivatives, and `R^2(ind. seq)` captures each sequence by itself.
 
-# ## Table 2:
+# ## Table 2
 r2_fixed
 # This table corresponds to Tab. 2 in the [paper](https://arxiv.org/pdf/TODO) and analyzes the fixed effects. `R²(fixed)` is separated into the individual effects with Shapley regression. Note that `R²(fixed) = R²(m₀ˢ) + R²(T₁ᶠ) + R²(T₂ᶠ) + R²(Tₓ) + R²(T₁ˢ) + R²(T₂ˢ).
 
 # ## Figure 2
-plt = plot(pall..., layout=(3, 2), size=(800, 1200))
+plt = plot(pall..., layout=(3, 2), size=(800, 1000))
 #md Main.HTMLPlot(plt) #hide
 
 # Validation of the mixed effects model, where "observed" denotes the simulated derivatives, and "predicted" the output of the mixed model. The sequence type is here color-coded, while the maker shape identifies the region of interest. Here, WM denotes white matter, CC the corpus callosum, and GM gray matter. The dotted line represents the perfect fit.
 
-# ## Table A1:
+# ## Table A1
 fixed_model
-# Coefficients of the fixed effects for each derivative's mixed model fit, including the intercept `a₀`. The last column denotes the derivatives assuming `m₀ˢ = 0` and the mean values for the other parameters. For `m₀ˢ = 0`, the MT model reduces to the Bloch model, and a perfect statistical model should result in `∂T₁ᵒ/∂T₁ᶠ = 1` and `∂T₁ᵒ/∂Tₓ = ∂T₁ᵒ/∂T₁ˢ = ∂T₁ᵒ/∂T₂ˢ = 0`. This is clearly not the case, showing the limits of the mixed effects model when extrapolating.
+# Coefficients of the fixed effects for each derivative's mixed model fit, including the intercept `a₀`. The last column denotes the derivatives assuming `m₀ˢ = 0` and the mean values for the other parameters. For `m₀ˢ = 0`, the MT model reduces to the Bloch model, and a perfect statistical model should result in `∂T₁ᵒ/∂T₁ᶠ = 1` and `∂T₁ᵒ/∂Tₓ = ∂T₁ᵒ/∂T₁ˢ = ∂T₁ᵒ/∂T₂ˢ = 0`. This is clearly not the case, highlighting the limitations of the mixed-effects model when extrapolating.
 
 
 ## #src

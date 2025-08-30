@@ -71,7 +71,7 @@ function calculate_T1_IRStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
     u_exc = u_ref * u_te2 * u_exc
 
     ## adiabatic inversion pulse confirmed by the authors
-    ω1, _, φ, TRF_inv = sech_inversion_pulse() # 360 deg, defined by the intgral over the RF's real part.
+    ω1, _, φ, TRF_inv = sech_inversion_pulse() # 360 deg, defined by the integral over the RF's real part.
     u_inv = RF_pulse_propagator(ω1, B1, φ, TRF_inv, m0s, R1f, R2f, Rx, R1s, T2s, MT_model)
 
     ## relaxation blocks

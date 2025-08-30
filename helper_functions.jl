@@ -216,7 +216,7 @@ end
 nothing #hide #md
 
 #-
-#src Standard Siemen parameters:
+#src Standard Siemens parameters:
 #src TRF = 10.24e-3 s
 #src β = 674.1 shape parameter in 1/s
 #src μ = 5 shape parameter (dimensionless)

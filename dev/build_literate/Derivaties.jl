@@ -194,7 +194,7 @@ for id ∈ eachindex(j)
         title = j[id],
         xlabel=id ∈ [5,6] ? "Observed" : "",
         ylabel=id ∈ [1,3,5] ? "Predicted" : "",
-        legend=:none,
+        legend_position=:outerbottomright,
         xlim,
         ylim=xlim
     )
@@ -206,6 +206,6 @@ r2
 
 r2_fixed
 
-plt = plot(pall..., layout=(3, 2), size=(800, 1200))
+plt = plot(pall..., layout=(3, 2), size=(800, 1000))
 
 fixed_model

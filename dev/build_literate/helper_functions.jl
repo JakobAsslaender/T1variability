@@ -38,9 +38,9 @@ function steady_state(U)
 end
 
 const G = interpolate_greens_function(greens_superlorentzian, 0, 1000)
-const R2sl_1 = precompute_R2sl(TRF_min=1e-6, TRF_max=3e-6, ω1_max=π / 500e-6, T2s_min=12e-6, T2s_max=13e-6, B1_max=1.1)[1]
-const R2sl_2 = precompute_R2sl(TRF_min=10e-6, TRF_max=20e-6, ω1_max=π / 10e-6, T2s_min=12e-6, T2s_max=13e-6, B1_max=1.1)[1]
-const R2sl_3 = precompute_R2sl(TRF_max=1e-3, ω1_max=π / 500e-6, T2s_min=12e-6, T2s_max=13e-6, B1_max=1.1)[1]
+const R2sl_1 = precompute_R2sl(TRF_min=1e-6, TRF_max=3e-6, ω1_max=π / 500e-6, T2s_min=12e-6, T2s_max=17e-6, B1_max=1.1)[1]
+const R2sl_2 = precompute_R2sl(TRF_min=10e-6, TRF_max=20e-6, ω1_max=π / 10e-6, T2s_min=12e-6, T2s_max=17e-6, B1_max=1.1)[1]
+const R2sl_3 = precompute_R2sl(TRF_max=1e-3, ω1_max=π / 500e-6, T2s_min=12e-6, T2s_max=17e-6, B1_max=1.1)[1]
 
 function RF_pulse_propagator(ω1::Number, B1, ω0, TRF, m0s, R1f, R2f, Rx, R1s, T2s, model::gBloch; spoiler=true)
     if TRF >= 1e-6 && TRF <= 3e-6

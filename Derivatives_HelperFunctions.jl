@@ -1,4 +1,15 @@
-# Analyze fixed models with Shapley
+# # Helper functions for the sensitivity analysis
+# ## Load additional packages
+using FiniteDifferences
+using DataFrames
+using CategoricalArrays
+using CSV
+using MixedModels
+using StatsPlots
+using Printf
+using Combinatorics
+
+# ## Analyze fixed models with Shapley regression
 function shapley_regression(df, lhs, p)
     Δr² = similar(p, Float64)
     Δr² .= 0
@@ -37,3 +48,13 @@ function _r2(df, lhs, rhs)
     r² = σ²_fixed / σ²_all
     return r²
 end
+nothing #hide #md
+
+# ## Helper function:
+function get_main_path()
+    path_parts = splitpath(pwd())
+    i_docs = findfirst(==("docs"), path_parts)
+    main_path = i_docs === nothing ? pwd() : joinpath(path_parts[1:i_docs-1]...)
+    return main_path
+end
+nothing #hide #md

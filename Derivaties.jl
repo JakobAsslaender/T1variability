@@ -16,7 +16,7 @@ nothing #hide #md
 
 # ## Set parameters
 # We analyze overall 9 ROIs and use the MT parameters from the paper [Unconstrained quantitative magnetization transfer imaging: Disentangling T₁ of the free and semi-solid spin pools](https://doi.org/10.1162/imag_a_00177):
-ROI = [:WM, :anteriorCC, :posteriorCC, :GM, :Caudate, :Putamen, :Pallidum, :Thalamus, :Hippocampus]
+ROI = [:WM, :anteriorCC, :posteriorCC, :GM, :caudate, :putamen, :pallidum, :thalamus, :hippocampus]
 m0s = [0.212, 0.237, 0.235, 0.098, 0.113, 0.118, 0.164, 0.158, 0.097]
 T1f = [1.84, 1.77, 1.80, 2.46, 1.95, 1.84, 1.664, 2.02, 2.65]
 T2f = [76.9, 69.9, 76.3, 83, 73.3, 67.4, 59.3, 70.8, 91] .* 1e-3
@@ -146,8 +146,8 @@ df_pred = DataFrame(
 
 r2 = DataFrame()
 r2[!, Symbol("∂T₁ᵒ / ∂pᵢᴹᵀ")]=Symbol[]
-r2[!, Symbol("μ(∂T₁ᵒ/∂pᵢᴹᵀ) ⋅ μ(pᵢᴹᵀ)")]=Float64[]
-r2[!, Symbol("σ(∂T₁ᵒ/∂pᵢᴹᵀ) / μ(∂T₁ᵒ/∂pᵢᴹᵀ)")]=Float64[]
+r2[!, Symbol("μ(|∂T₁ᵒ/∂pᵢᴹᵀ|) ⋅ μ(pᵢᴹᵀ)")]=Float64[]
+r2[!, Symbol("σ(∂T₁ᵒ/∂pᵢᴹᵀ) / μ(|∂T₁ᵒ/∂pᵢᴹᵀ|)")]=Float64[]
 r2[!, Symbol("R²(fixed)")]=Float64[]
 r2[!, Symbol("R²(ROI)")]=Float64[]
 r2[!, Symbol("R²(seq. type)")]=Float64[]
@@ -178,12 +178,12 @@ fixed_model[!, Symbol("m₀ˢ = 0")]=Float64[]
 str_r2_tex = "" #src
 str_fixed_r2_tex = "" #src
 str_fixed_model_tex = "" #src
-j_tex = ["\$\\partial T_1 / \\partial m_0^s\$", "\$\\partial T_1 / \\partial T_1^f\$", "\$\\partial T_1 / \\partial T_2^f\$", "\$\\partial T_1 / \\partial T_\\text{x}\$", "\$\\partial T_1 / \\partial T_1^s\$", "\$\\partial T_1 / \\partial T_2^s\$"] #src
+j_tex = ["\$\\partial T_1 / \\partial m_0^\\text{s}\$", "\$\\partial T_1 / \\partial T_1^\\text{f}\$", "\$\\partial T_1 / \\partial T_2^\\text{f}\$", "\$\\partial T_1 / \\partial T_\\text{x}\$", "\$\\partial T_1 / \\partial T_1^\\text{s}\$", "\$\\partial T_1 / \\partial T_2^\\text{s}\$"] #src
 
 pall = similar(j, Plots.Plot)
 for id ∈ eachindex(j)
-    μⱼ = abs(mean(df[!, j[id]]) * mean(df[!, p[id]]))
-    cv = abs(std(df[!, j[id]]) / mean(df[!, j[id]]))
+    μⱼ = mean(abs.(df[!, j[id]])) * mean(df[!, p[id]])
+    cv = std(df[!, j[id]]) / mean(abs.(df[!, j[id]]))
 
     frm = @formula(derivative ~ 1 + m0s + T1f + T2f + Tex + T1s + T2s + (1 | seq_type) + (1 | seq_name) + (1 | ROI))
     model = fit(MixedModel, term(j[id]) ~ frm.rhs, df)
@@ -228,7 +228,7 @@ for id ∈ eachindex(j)
 
     pall[id] = scatter(df[!, j[id]], predict(model);
         group=df.seq_type,
-        hover=df.seq_name .* df.ROI,
+        hover=df.seq_name .* "; " .* df.ROI,
         m=markers,
         title = j[id],
         xlabel=id ∈ [5,6] ? "Observed" : "",
@@ -249,7 +249,7 @@ end
 # ## Table 1
 # Print the results of the mixed effects model fit:
 r2
-# This table corresponds to Tab. 1 in the [paper](https://arxiv.org/pdf/TODO). The column `μ(∂T₁ᵒ/∂pᵢᴹᵀ) ⋅ μ(pᵢᴹᵀ)` denotes the mean derivative, normalized by the average parameter, and serves as a measure for the sensitivity of `T₁ᵒ` to the respective parameter. The column `σ(∂T₁ᵒ/∂pᵢᴹᵀ) / μ(∂T₁ᵒ/∂pᵢᴹᵀ)` denotes the coefficient of variation. The coefficients of determination for the full model `R^2(full)` is dissected into its components: `R^2(full) = R²(fixed) + R^2(ROI) + R^2(seq. type) + R^2(ind. seq)`, where `R²(fixed)` captures all fixed effects, that is, the degree to which variations of the `pᵢᴹᵀ` between the ROIs explain the derivatives' variability. `R^2(ROI)` captures the ROI-identifier as a random variable, potentially modeling inter-ROI variations not captured by the linear model of `pᵢᴹᵀ`. `R^2(seq. type)` captures the degree to which the sequence type, that is, the groups inversion-recovery, Look-Locker, saturation-recovery, variable flip angle, and MP²RAGE, explains variability of the derivatives, and `R^2(ind. seq)` captures each sequence by itself.
+# This table corresponds to Tab. 1 in the [paper](https://arxiv.org/pdf/TODO). The column `μ(|∂T₁ᵒ/∂pᵢᴹᵀ|) ⋅ μ(pᵢᴹᵀ)` denotes the mean derivative, normalized by the average parameter, and serves as a measure for the sensitivity of `T₁ᵒ` to the respective parameter. The column `σ(∂T₁ᵒ/∂pᵢᴹᵀ) / μ(|∂T₁ᵒ/∂pᵢᴹᵀ|)` denotes the coefficient of variation. The coefficients of determination for the full model `R^2(full)` is dissected into its components: `R^2(full) = R²(fixed) + R^2(ROI) + R^2(seq. type) + R^2(ind. seq)`, where `R²(fixed)` captures all fixed effects, that is, the degree to which variations of the `pᵢᴹᵀ` between the ROIs explain the derivatives' variability. `R^2(ROI)` captures the ROI-identifier as a random variable, potentially modeling inter-ROI variations not captured by the linear model of `pᵢᴹᵀ`. `R^2(seq. type)` captures the degree to which the sequence type, that is, the groups inversion-recovery, Look-Locker, saturation-recovery, variable flip angle, and MP²RAGE, explains variability of the derivatives, and `R^2(ind. seq)` captures each sequence by itself.
 
 # ## Table 2
 r2_fixed
@@ -268,8 +268,8 @@ fixed_model
 
 ## #src
 println(r2) #src
-println(str_fixed_r2) #src
-println(str_fixed_model) #src
+println(r2_fixed) #src
+println(fixed_model) #src
 println(str_r2_tex) #src
 println(str_fixed_r2_tex) #src
 println(str_fixed_model_tex) #src

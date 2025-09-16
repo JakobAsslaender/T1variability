@@ -275,9 +275,9 @@ function calculate_T1_LLStikhov(m0s, R1f, R2f, Rx, R1s, T2s)
     TRF_inv = 720e-6 # s; for 180deg pulse, 90deg pulse are half as long
 
     # simulate signal with an MT model
-    u_90  = MRIgeneralizedBloch.xs_destructor(nothing) * RF_pulse_propagator(π / TRF_inv, B1, ω0, TRF_inv / 2, m0s, R1f, R2f, Rx, R1s, T2s, MT_model, spoiler=true)
-    u_inv = MRIgeneralizedBloch.xs_destructor(nothing) * RF_pulse_propagator(π / TRF_inv, B1, ω0, TRF_inv,     m0s, R1f, R2f, Rx, R1s, T2s, MT_model, spoiler=false)
-    u_m90 = MRIgeneralizedBloch.xs_destructor(nothing) * RF_pulse_propagator(π / TRF_inv, B1, ω0, TRF_inv / 2, m0s, R1f, R2f, Rx, R1s, T2s, MT_model, spoiler=false)
+    u_90  = MRIgeneralizedBloch.xs_destructor(zeros(SMatrix{6,6})) * RF_pulse_propagator(π / TRF_inv, B1, ω0, TRF_inv / 2, m0s, R1f, R2f, Rx, R1s, T2s, MT_model, spoiler=true)
+    u_inv = MRIgeneralizedBloch.xs_destructor(zeros(SMatrix{6,6})) * RF_pulse_propagator(π / TRF_inv, B1, ω0, TRF_inv,     m0s, R1f, R2f, Rx, R1s, T2s, MT_model, spoiler=false)
+    u_m90 = MRIgeneralizedBloch.xs_destructor(zeros(SMatrix{6,6})) * RF_pulse_propagator(π / TRF_inv, B1, ω0, TRF_inv / 2, m0s, R1f, R2f, Rx, R1s, T2s, MT_model, spoiler=false)
     u_rotp = MRIgeneralizedBloch.z_rotation_propagator(π/2, nothing)
     u_rotm = MRIgeneralizedBloch.z_rotation_propagator(-π/2, nothing)
     u_inv = u_rotp * u_m90 * u_rotm * u_inv * u_rotp * u_90  # 90-180-90 pattern confirmed by authors

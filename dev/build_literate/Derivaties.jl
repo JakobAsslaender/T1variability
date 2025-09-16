@@ -5,7 +5,7 @@ include("T1_mapping_methods.jl")
 
 MT_model = gBloch()
 
-ROI = [:WM, :anteriorCC, :posteriorCC, :GM, :Caudate, :Putamen, :Pallidum, :Thalamus, :Hippocampus]
+ROI = [:WM, :anteriorCC, :posteriorCC, :GM, :caudate, :putamen, :pallidum, :thalamus, :hippocampus]
 m0s = [0.212, 0.237, 0.235, 0.098, 0.113, 0.118, 0.164, 0.158, 0.097]
 T1f = [1.84, 1.77, 1.80, 2.46, 1.95, 1.84, 1.664, 2.02, 2.65]
 T2f = [76.9, 69.9, 76.3, 83, 73.3, 67.4, 59.3, 70.8, 91] .* 1e-3
@@ -114,8 +114,8 @@ df_pred = DataFrame(
 
 r2 = DataFrame()
 r2[!, Symbol("∂T₁ᵒ / ∂pᵢᴹᵀ")]=Symbol[]
-r2[!, Symbol("μ(∂T₁ᵒ/∂pᵢᴹᵀ) ⋅ μ(pᵢᴹᵀ)")]=Float64[]
-r2[!, Symbol("σ(∂T₁ᵒ/∂pᵢᴹᵀ) / μ(∂T₁ᵒ/∂pᵢᴹᵀ)")]=Float64[]
+r2[!, Symbol("μ(|∂T₁ᵒ/∂pᵢᴹᵀ|) ⋅ μ(pᵢᴹᵀ)")]=Float64[]
+r2[!, Symbol("σ(∂T₁ᵒ/∂pᵢᴹᵀ) / μ(|∂T₁ᵒ/∂pᵢᴹᵀ|)")]=Float64[]
 r2[!, Symbol("R²(fixed)")]=Float64[]
 r2[!, Symbol("R²(ROI)")]=Float64[]
 r2[!, Symbol("R²(seq. type)")]=Float64[]
@@ -146,8 +146,8 @@ fixed_model[!, Symbol("m₀ˢ = 0")]=Float64[]
 
 pall = similar(j, Plots.Plot)
 for id ∈ eachindex(j)
-    μⱼ = abs(mean(df[!, j[id]]) * mean(df[!, p[id]]))
-    cv = abs(std(df[!, j[id]]) / mean(df[!, j[id]]))
+    μⱼ = mean(abs.(df[!, j[id]])) * mean(df[!, p[id]])
+    cv = std(df[!, j[id]]) / mean(abs.(df[!, j[id]]))
 
     frm = @formula(derivative ~ 1 + m0s + T1f + T2f + Tex + T1s + T2s + (1 | seq_type) + (1 | seq_name) + (1 | ROI))
     model = fit(MixedModel, term(j[id]) ~ frm.rhs, df)
@@ -189,7 +189,7 @@ for id ∈ eachindex(j)
 
     pall[id] = scatter(df[!, j[id]], predict(model);
         group=df.seq_type,
-        hover=df.seq_name .* df.ROI,
+        hover=df.seq_name .* "; " .* df.ROI,
         m=markers,
         title = j[id],
         xlabel=id ∈ [5,6] ? "Observed" : "",

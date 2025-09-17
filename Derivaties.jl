@@ -128,18 +128,18 @@ plt = plot(pall..., layout=(6, 1), size=(800, 1500))
 # ## Linear Mixed model
 # First, we initialize a few empty `DataFrame` objects that are filled in the for-loop.
 df_pred = DataFrame(
-    dT1odm0s_observe=Vector{Float64}(undef, Nrows),
-    dT1odT1f_observe=Vector{Float64}(undef, Nrows),
-    dT1odT2f_observe=Vector{Float64}(undef, Nrows),
-    dT1odTex_observe=Vector{Float64}(undef, Nrows),
-    dT1odT1s_observe=Vector{Float64}(undef, Nrows),
-    dT1odT2s_observe=Vector{Float64}(undef, Nrows),
-    dT1odm0s_predict=Vector{Float64}(undef, Nrows),
-    dT1odT1f_predict=Vector{Float64}(undef, Nrows),
-    dT1odT2f_predict=Vector{Float64}(undef, Nrows),
-    dT1odTex_predict=Vector{Float64}(undef, Nrows),
-    dT1odT1s_predict=Vector{Float64}(undef, Nrows),
-    dT1odT2s_predict=Vector{Float64}(undef, Nrows),
+    dT1odm0s_simulated=Vector{Float64}(undef, Nrows),
+    dT1odT1f_simulated=Vector{Float64}(undef, Nrows),
+    dT1odT2f_simulated=Vector{Float64}(undef, Nrows),
+    dT1odTex_simulated=Vector{Float64}(undef, Nrows),
+    dT1odT1s_simulated=Vector{Float64}(undef, Nrows),
+    dT1odT2s_simulated=Vector{Float64}(undef, Nrows),
+    dT1odm0s_predicted=Vector{Float64}(undef, Nrows),
+    dT1odT1f_predicted=Vector{Float64}(undef, Nrows),
+    dT1odT2f_predicted=Vector{Float64}(undef, Nrows),
+    dT1odTex_predicted=Vector{Float64}(undef, Nrows),
+    dT1odT1s_predicted=Vector{Float64}(undef, Nrows),
+    dT1odT2s_predicted=Vector{Float64}(undef, Nrows),
     color=Vector{Int}(undef, Nrows),
     ROI=Vector{Symbol}(undef, Nrows),
 )
@@ -217,7 +217,7 @@ for id ∈ eachindex(j)
     global str_fixed_r2_tex *= @sprintf("%s & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f \\\\ \n", j_tex[id], Δr²...) #src
     global str_fixed_model_tex *= @sprintf("%s & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f \\\\ \n", j_tex[id], fe..., m0s_intercept) #src
 
-    ## Plot: observed vs full-model prediction
+    ## Plot: simulated vs. full-model prediction
     dlim = maximum(df[!, j[id]]) - minimum(df[!, j[id]])
     xlim = (minimum(df[!, j[id]]) - 0.15dlim, maximum(df[!, j[id]]) + 0.15dlim)
 
@@ -228,22 +228,22 @@ for id ∈ eachindex(j)
 
     pall[id] = scatter(df[!, j[id]], predict(model);
         group=df.seq_type,
-        hover=df.seq_name .* "; " .* df.ROI,
+        hover=df.seq_name .* "; " .* String.(df.ROI),
         m=markers,
         title = j[id],
-        xlabel=id ∈ [5,6] ? "Observed" : "",
-        ylabel=id ∈ [1,3,5] ? "Predicted" : "",
+        xlabel=id ∈ [5,6] ? "simulated" : "",
+        ylabel=id ∈ [1,3,5] ? "predicted" : "",
         legend_position=:outerbottomright,
         xlim,
         ylim=xlim
     )
 
-    plot!(pall[id], [xlim...], [xlim...], label="Ideal", lc=:white, ls=:dash)
+    plot!(pall[id], [xlim...], [xlim...], label="ideal", lc=:white, ls=:dash)
     ## write in df #src
-    df_pred[!, String(j[id]) * "_observe"] = df[!, j[id]] #src
-    df_pred[!, String(j[id]) * "_predict"] = predict(model) #src
+    df_pred[!, String(j[id]) * "_simulated"] = df[!, j[id]] #src
+    df_pred[!, String(j[id]) * "_predicted"] = predict(model) #src
     df_pred[!, :ROI] = df[!, :ROI] #src
-    df_pred[!, :color] = levelcode.(CategoricalArray(df[!, :seq_type])) #src
+    df_pred[!, :color] = levelcode.(CategoricalArray(String.(df[!, :seq_type]))) #src
 end
 
 # ## Table 1
@@ -259,7 +259,7 @@ r2_fixed
 plt = plot(pall..., layout=(3, 2), size=(800, 1000))
 #md Main.HTMLPlot(plt) #hide
 
-# Validation of the mixed effects model, where "observed" denotes the simulated derivatives, and "predicted" the output of the mixed model. The sequence type is here color-coded, while the maker shape identifies the region of interest. Here, WM denotes white matter, CC the corpus callosum, and GM gray matter. The dotted line represents the perfect fit.
+# Validation of the mixed effects model, where "simulated" denotes the simulated derivatives, and "predicted" the output of the mixed model. The sequence type is here color-coded, while the maker shape identifies the region of interest. Here, WM denotes white matter, CC the corpus callosum, and GM gray matter. The dotted line represents the perfect fit.
 
 # ## Table A1
 fixed_model

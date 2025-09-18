@@ -8,7 +8,7 @@ The code in the first section reproduces all results in the paper [Magnetization
 
 ## Sensitivity of literature T₁ mapping methods to the underlying magnetization transfer parameters
 
-The code in the second section reproduces all results in the follow-up paper [Sensitivity of literature T₁ mapping methods to the underlying magnetization transfer parameters](https://arxiv.org/pdf/TODO). The code is also written in the open-source language Julia and is structured as follows:
+The code in the second section reproduces all results in the follow-up paper [Sensitivity of literature T₁ mapping methods to the underlying magnetization transfer parameters](https://arxiv.org/pdf/2509.13644). The code is also written in the open-source language Julia and is structured as follows:
 
 - [Sensitivity analysis](@ref): This script calculates the derivatives, analyzes, and plots them.
 - [Helper functions for the sensitivity analysis](@ref): This script contains functions for the calculation of the coefficient of determination `R²`. This script also loads all required packages.

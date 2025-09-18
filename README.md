@@ -1,8 +1,8 @@
-| **Publication**        | **Links to Publications**                               | **Corresponding Code**            |
-|:-----------------------|:------------------------------------------------------- |:--------------------------------- |
-| T₁ Variability         | [![][MRM-img1]][MRM-url1] [![][arXiv-img1]][arXiv-url1] | [![][docsv1.0-img]][docsv1.0-url] |
-| T₁ Sensitivity         | [![][arXiv-img2]][arXiv-url2]                           | [![][docsv2.0-img]][docsv2.0-url] |
-| unpublished edits      |                                                         | [![][docsdev-img]][docsdev-url]   |
+| **Publication**        | **Links to Publications**                               | **Corresponding Code**                                              |
+|:-----------------------|:------------------------------------------------------- |:------------------------------------------------------------------- |
+| T₁ Variability         | [![][MRM-img1]][MRM-url1] [![][arXiv-img1]][arXiv-url1] | [![][docsv1.0-img]][docsv1.0-url] [![][docsv2.0-img]][docsv2.0-url] |
+| T₁ Sensitivity         | [![][arXiv-img2]][arXiv-url2]                           | [![][docsv2.0-img]][docsv2.0-url]                                   |
+| unpublished edits      |                                                         | [![][docsdev-img]][docsdev-url]                                     |
 
 # T₁ Variability Paper
 This code reproduces all results in the paper [Magnetization transfer explains most of the T₁ variability in the MRI literature][arXiv-url1]. Please refer to the [Documentation][docsv1.0-url] for a detailed description of the code.
